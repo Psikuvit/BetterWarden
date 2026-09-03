@@ -11,8 +11,10 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.core.model.Ticket;
 import me.psikuvit.betterWarden.core.model.TicketMessage;
 import me.psikuvit.betterWarden.core.model.TicketStatus;
+import me.psikuvit.betterWarden.core.service.ChatInputService;
 import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.TicketService;
+import me.psikuvit.betterWarden.gui.TicketInboxMenu;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -27,15 +29,17 @@ import static io.papermc.paper.command.brigadier.Commands.literal;
 public final class TicketCommands {
 
     private final TicketService service;
+    private final ChatInputService chatInput;
     private final LangService lang;
 
-    private TicketCommands(TicketService service, LangService lang) {
+    private TicketCommands(TicketService service, ChatInputService chatInput, LangService lang) {
         this.service = service;
+        this.chatInput = chatInput;
         this.lang = lang;
     }
 
-    public static void register(JavaPlugin plugin, TicketService service, LangService lang) {
-        TicketCommands commands = new TicketCommands(service, lang);
+    public static void register(JavaPlugin plugin, TicketService service, ChatInputService chatInput, LangService lang) {
+        TicketCommands commands = new TicketCommands(service, chatInput, lang);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(commands.ticket().build(), "Open a support ticket");
@@ -79,6 +83,10 @@ public final class TicketCommands {
 
     private int executeList(CommandContext<CommandSourceStack> ctx, TicketStatus status) {
         CommandSender sender = ctx.getSource().getSender();
+        if (sender instanceof Player staff) {
+            new TicketInboxMenu(service, chatInput, status).open(staff);
+            return Command.SINGLE_SUCCESS;
+        }
         printList(sender, service.list(status));
         return Command.SINGLE_SUCCESS;
     }

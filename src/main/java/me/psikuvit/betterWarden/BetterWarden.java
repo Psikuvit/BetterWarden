@@ -103,7 +103,7 @@ public final class BetterWarden extends JavaPlugin {
         WardenAdminCommands.register(this, templates, escalationService, coreConfig, configFile, lang);
         ReportCommands.register(this, reportService, playerTracking, lang);
         TicketService ticketService = springContext.getBean(TicketService.class);
-        TicketCommands.register(this, ticketService, lang);
+        TicketCommands.register(this, ticketService, chatInput, lang);
 
         getServer().getPluginManager().registerEvents(new BanGateListener(punishmentService, ipHashing, lang), this);
         getServer().getPluginManager().registerEvents(new MuteGateListener(punishmentService, lang), this);
