@@ -9,8 +9,10 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.core.model.Punishment;
+import me.psikuvit.betterWarden.core.model.PunishmentTemplate;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
+import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.core.util.DurationParser;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -42,13 +44,15 @@ public final class PunishmentCommands {
     };
 
     private final PunishmentService service;
+    private final PunishmentTemplateService templates;
 
-    private PunishmentCommands(PunishmentService service) {
+    private PunishmentCommands(PunishmentService service, PunishmentTemplateService templates) {
         this.service = service;
+        this.templates = templates;
     }
 
-    public static void register(JavaPlugin plugin, PunishmentService service) {
-        PunishmentCommands commands = new PunishmentCommands(service);
+    public static void register(JavaPlugin plugin, PunishmentService service, PunishmentTemplateService templates) {
+        PunishmentCommands commands = new PunishmentCommands(service, templates);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(commands.punishFixed("ban", "warden.ban", PunishmentType.BAN, false).build(), "Ban a player");
@@ -115,10 +119,10 @@ public final class PunishmentCommands {
             sender.sendMessage("Player not found.");
             return 0;
         }
-        String reason = reasonOrDefault(ctx);
+        ResolvedReason resolved = resolveReason(reasonOrDefault(ctx), null);
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
-        Punishment punishment = service.issue(target.get().uuid(), target.get().name(), type, reason, staffUuid, null, silent, null);
-        sender.sendMessage(type.name() + " issued to " + target.get().name() + " (#" + punishment.getId() + "): " + reason);
+        Punishment punishment = service.issue(target.get().uuid(), target.get().name(), type, resolved.reason(), staffUuid, resolved.duration(), silent, null);
+        sender.sendMessage(type.name() + " issued to " + target.get().name() + " (#" + punishment.getId() + "): " + resolved.reason());
         return Command.SINGLE_SUCCESS;
     }
 
@@ -137,11 +141,27 @@ public final class PunishmentCommands {
             sender.sendMessage("Player not found.");
             return 0;
         }
-        String reason = reasonOrDefault(ctx);
+        ResolvedReason resolved = resolveReason(reasonOrDefault(ctx), duration);
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
-        Punishment punishment = service.issue(target.get().uuid(), target.get().name(), type, reason, staffUuid, duration, silent, null);
-        sender.sendMessage(type.name() + " issued to " + target.get().name() + " (#" + punishment.getId() + "): " + reason);
+        Punishment punishment = service.issue(target.get().uuid(), target.get().name(), type, resolved.reason(), staffUuid, resolved.duration(), silent, null);
+        sender.sendMessage(type.name() + " issued to " + target.get().name() + " (#" + punishment.getId() + "): " + resolved.reason());
         return Command.SINGLE_SUCCESS;
+    }
+
+    /** "#key" resolves to a stored template's reason/duration; anything else passes through with fallbackDuration untouched. */
+    private ResolvedReason resolveReason(String rawReason, Duration fallbackDuration) {
+        if (rawReason.startsWith("#")) {
+            Optional<PunishmentTemplate> template = templates.find(rawReason.substring(1));
+            if (template.isPresent()) {
+                PunishmentTemplate t = template.get();
+                Duration duration = t.getDuration() == null ? null : DurationParser.parse(t.getDuration());
+                return new ResolvedReason(t.getReason(), duration);
+            }
+        }
+        return new ResolvedReason(rawReason, fallbackDuration);
+    }
+
+    private record ResolvedReason(String reason, Duration duration) {
     }
 
     private int executeIpBan(CommandContext<CommandSourceStack> ctx) {

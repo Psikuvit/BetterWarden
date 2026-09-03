@@ -3,11 +3,13 @@ package me.psikuvit.betterWarden;
 import me.psikuvit.betterWarden.bridge.PaperBridge;
 import me.psikuvit.betterWarden.command.InfoCommands;
 import me.psikuvit.betterWarden.command.PunishmentCommands;
+import me.psikuvit.betterWarden.command.WardenAdminCommands;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import me.psikuvit.betterWarden.core.service.IpHashingService;
 import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
+import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
 import me.psikuvit.betterWarden.listener.BanGateListener;
 import me.psikuvit.betterWarden.listener.MuteCommandBlockListener;
@@ -69,9 +71,11 @@ public final class BetterWarden extends JavaPlugin {
         PlayerTrackingService playerTracking = springContext.getBean(PlayerTrackingService.class);
         StaffNoteService staffNotes = springContext.getBean(StaffNoteService.class);
         IpHashingService ipHashing = springContext.getBean(IpHashingService.class);
+        PunishmentTemplateService templates = springContext.getBean(PunishmentTemplateService.class);
 
-        PunishmentCommands.register(this, punishmentService);
+        PunishmentCommands.register(this, punishmentService, templates);
         InfoCommands.register(this, punishmentService, staffNotes);
+        WardenAdminCommands.register(this, templates);
 
         getServer().getPluginManager().registerEvents(new BanGateListener(punishmentService, ipHashing), this);
         getServer().getPluginManager().registerEvents(new MuteGateListener(punishmentService), this);
