@@ -9,11 +9,14 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
+import me.psikuvit.betterWarden.core.service.ChatInputService;
 import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
+import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
 import me.psikuvit.betterWarden.gui.PlayerLookupMenu;
+import me.psikuvit.betterWarden.gui.PunishmentHistoryMenu;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -31,20 +34,27 @@ public final class InfoCommands {
     private final StaffNoteService noteService;
     private final AltDetectionService altDetectionService;
     private final PlayerTrackingService playerTracking;
+    private final PunishmentTemplateService templates;
+    private final ChatInputService chatInput;
     private final LangService lang;
 
     private InfoCommands(PunishmentService punishmentService, StaffNoteService noteService,
-                          AltDetectionService altDetectionService, PlayerTrackingService playerTracking, LangService lang) {
+                          AltDetectionService altDetectionService, PlayerTrackingService playerTracking,
+                          PunishmentTemplateService templates, ChatInputService chatInput, LangService lang) {
         this.punishmentService = punishmentService;
         this.noteService = noteService;
         this.altDetectionService = altDetectionService;
         this.playerTracking = playerTracking;
+        this.templates = templates;
+        this.chatInput = chatInput;
         this.lang = lang;
     }
 
     public static void register(JavaPlugin plugin, PunishmentService punishmentService, StaffNoteService noteService,
-                                 AltDetectionService altDetectionService, PlayerTrackingService playerTracking, LangService lang) {
-        InfoCommands commands = new InfoCommands(punishmentService, noteService, altDetectionService, playerTracking, lang);
+                                 AltDetectionService altDetectionService, PlayerTrackingService playerTracking,
+                                 PunishmentTemplateService templates, ChatInputService chatInput, LangService lang) {
+        InfoCommands commands = new InfoCommands(punishmentService, noteService, altDetectionService, playerTracking,
+                templates, chatInput, lang);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(commands.history().build(), "View a player's punishment history");
@@ -117,8 +127,8 @@ public final class InfoCommands {
 
         // Spec says /lookup opens a GUI - do that for players; console has no inventory, so it keeps the chat form.
         if (sender instanceof Player staff) {
-            new PlayerLookupMenu(uuid, target.get().name(), punishmentService, noteService, altDetectionService, playerTracking)
-                    .open(staff);
+            new PlayerLookupMenu(uuid, target.get().name(), punishmentService, noteService, altDetectionService,
+                    playerTracking, templates, chatInput).open(staff);
             return Command.SINGLE_SUCCESS;
         }
 
@@ -142,6 +152,13 @@ public final class InfoCommands {
             Msg.send(sender, lang.get("common.player-not-found"));
             return 0;
         }
+
+        // Spec says /history opens a GUI too - same player/console split as /lookup.
+        if (sender instanceof Player staff) {
+            new PunishmentHistoryMenu(target.get().uuid(), target.get().name(), punishmentService).open(staff);
+            return Command.SINGLE_SUCCESS;
+        }
+
         List<Punishment> history = punishmentService.history(target.get().uuid(), 10);
         if (history.isEmpty()) {
             Msg.send(sender, lang.get("history.empty", target.get().name()));

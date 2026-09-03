@@ -35,7 +35,15 @@ public abstract class WardenMenu implements InventoryHolder {
         inventory.setItem(slot, item);
         if (onClick != null) {
             handlers.put(slot, onClick);
+        } else {
+            // Re-rendering a paginated menu must drop the old slot's handler too, not just its
+            // item - otherwise a stale handler from a previous page can fire on an now-empty slot.
+            handlers.remove(slot);
         }
+    }
+
+    protected void clearItem(int slot) {
+        setItem(slot, null, null);
     }
 
     void handleClick(InventoryClickEvent event) {

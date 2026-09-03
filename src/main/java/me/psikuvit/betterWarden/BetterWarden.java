@@ -96,9 +96,10 @@ public final class BetterWarden extends JavaPlugin {
         LangService lang = springContext.getBean(LangService.class);
         ReportService reportService = springContext.getBean(ReportService.class);
         ChatHistoryService chatHistory = springContext.getBean(ChatHistoryService.class);
+        ChatInputService chatInput = springContext.getBean(ChatInputService.class);
 
         PunishmentCommands.register(this, punishmentService, templates, lang);
-        InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking, lang);
+        InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking, templates, chatInput, lang);
         WardenAdminCommands.register(this, templates, escalationService, coreConfig, configFile, lang);
         ReportCommands.register(this, reportService, lang);
         TicketService ticketService = springContext.getBean(TicketService.class);
@@ -111,7 +112,6 @@ public final class BetterWarden extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SessionListener(playerTracking), this);
         getServer().getPluginManager().registerEvents(new ChatCaptureListener(chatHistory), this);
         getServer().getPluginManager().registerEvents(new MenuListener(), this);
-        ChatInputService chatInput = springContext.getBean(ChatInputService.class);
         getServer().getPluginManager().registerEvents(new ChatInputListener(chatInput, scheduler), this);
 
         registerHooks(punishmentService);

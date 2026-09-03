@@ -2,8 +2,10 @@ package me.psikuvit.betterWarden.gui;
 
 import me.psikuvit.betterWarden.core.model.PunishmentType;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
+import me.psikuvit.betterWarden.core.service.ChatInputService;
 import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
+import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Material;
@@ -16,8 +18,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Read-only profile view + a single quick action (Kick, confirmed first). Ban/mute still go
- * through commands - they need a typed reason and there's no anvil-input framework yet.
+ * Read-only profile view plus quick actions (Warn/Mute/Ban open a TemplatePickerMenu, Kick is
+ * immediate behind a confirmation). Tempban/tempmute need a duration and stay command-only.
  */
 public class PlayerLookupMenu extends WardenMenu {
 
@@ -25,7 +27,8 @@ public class PlayerLookupMenu extends WardenMenu {
 
     public PlayerLookupMenu(UUID targetUuid, String targetName, PunishmentService punishmentService,
                              StaffNoteService noteService, AltDetectionService altDetectionService,
-                             PlayerTrackingService playerTracking) {
+                             PlayerTrackingService playerTracking, PunishmentTemplateService templates,
+                             ChatInputService chatInput) {
         super(27, "<dark_gray>Lookup: <white>" + targetName);
 
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
@@ -53,7 +56,17 @@ public class PlayerLookupMenu extends WardenMenu {
                 .orElse("none");
         setItem(14, infoItem(Material.ZOMBIE_HEAD, "Known Alts (" + alts.size() + ")", altsValue));
 
-        setItem(16, actionItem(Material.RED_BED, "<red>Kick"), e -> {
+        setItem(19, actionItem(Material.PAPER, "<yellow>Warn"), e -> {
+            if (e.getWhoClicked() instanceof Player staff) {
+                new TemplatePickerMenu(PunishmentType.WARN, targetUuid, targetName, templates, punishmentService, chatInput).open(staff);
+            }
+        });
+        setItem(20, actionItem(Material.IRON_CHAIN, "<gold>Mute"), e -> {
+            if (e.getWhoClicked() instanceof Player staff) {
+                new TemplatePickerMenu(PunishmentType.MUTE, targetUuid, targetName, templates, punishmentService, chatInput).open(staff);
+            }
+        });
+        setItem(24, actionItem(Material.RED_BED, "<red>Kick"), e -> {
             if (!(e.getWhoClicked() instanceof Player staff)) {
                 return;
             }
@@ -61,6 +74,11 @@ public class PlayerLookupMenu extends WardenMenu {
                     punishmentService.issue(targetUuid, targetName, PunishmentType.KICK, "Kicked via lookup menu",
                             staff.getUniqueId(), null, false, null)
             ).open(staff);
+        });
+        setItem(25, actionItem(Material.IRON_SWORD, "<dark_red>Ban"), e -> {
+            if (e.getWhoClicked() instanceof Player staff) {
+                new TemplatePickerMenu(PunishmentType.BAN, targetUuid, targetName, templates, punishmentService, chatInput).open(staff);
+            }
         });
 
         setItem(22, actionItem(Material.BARRIER, "<gray>Close"), e -> e.getWhoClicked().closeInventory());
