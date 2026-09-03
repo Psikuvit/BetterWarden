@@ -9,6 +9,7 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
+import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
 import org.bukkit.command.CommandSender;
@@ -27,21 +28,25 @@ public final class InfoCommands {
     private final PunishmentService punishmentService;
     private final StaffNoteService noteService;
     private final AltDetectionService altDetectionService;
+    private final PlayerTrackingService playerTracking;
 
-    private InfoCommands(PunishmentService punishmentService, StaffNoteService noteService, AltDetectionService altDetectionService) {
+    private InfoCommands(PunishmentService punishmentService, StaffNoteService noteService,
+                          AltDetectionService altDetectionService, PlayerTrackingService playerTracking) {
         this.punishmentService = punishmentService;
         this.noteService = noteService;
         this.altDetectionService = altDetectionService;
+        this.playerTracking = playerTracking;
     }
 
     public static void register(JavaPlugin plugin, PunishmentService punishmentService, StaffNoteService noteService,
-                                 AltDetectionService altDetectionService) {
-        InfoCommands commands = new InfoCommands(punishmentService, noteService, altDetectionService);
+                                 AltDetectionService altDetectionService, PlayerTrackingService playerTracking) {
+        InfoCommands commands = new InfoCommands(punishmentService, noteService, altDetectionService, playerTracking);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(commands.history().build(), "View a player's punishment history");
             registrar.register(commands.note().build(), "Add a staff note to a player");
             registrar.register(commands.alts().build(), "List a player's known alt accounts");
+            registrar.register(commands.lookup().build(), "View a player's profile summary");
         });
     }
 
@@ -86,6 +91,35 @@ public final class InfoCommands {
         for (me.psikuvit.betterWarden.core.model.Player alt : alts) {
             sender.sendMessage("- " + alt.getLastName());
         }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private LiteralArgumentBuilder<CommandSourceStack> lookup() {
+        return literal("lookup")
+                .requires(src -> src.getSender().hasPermission("warden.lookup"))
+                .then(argument("player", StringArgumentType.word())
+                        .suggests(PlayerSuggestions.ONLINE_PLAYERS)
+                        .executes(this::executeLookup));
+    }
+
+    private int executeLookup(CommandContext<CommandSourceStack> ctx) {
+        CommandSender sender = ctx.getSource().getSender();
+        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
+        if (target.isEmpty()) {
+            sender.sendMessage("Player not found.");
+            return 0;
+        }
+        UUID uuid = target.get().uuid();
+        Optional<me.psikuvit.betterWarden.core.model.Player> player = playerTracking.find(uuid);
+
+        sender.sendMessage("=== " + target.get().name() + " ===");
+        player.ifPresentOrElse(p -> {
+            sender.sendMessage("First seen: " + p.getFirstSeen());
+            sender.sendMessage("Last seen: " + p.getLastSeen());
+        }, () -> sender.sendMessage("No profile on record yet."));
+        sender.sendMessage("Active punishments: " + punishmentService.activePunishments(uuid).size());
+        sender.sendMessage("Staff notes: " + noteService.list(uuid).size());
+        sender.sendMessage("Known alts: " + altDetectionService.findAlts(uuid).size());
         return Command.SINGLE_SUCCESS;
     }
 

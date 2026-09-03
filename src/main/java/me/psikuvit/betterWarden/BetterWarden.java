@@ -76,7 +76,7 @@ public final class BetterWarden extends JavaPlugin {
         AltDetectionService altDetection = springContext.getBean(AltDetectionService.class);
 
         PunishmentCommands.register(this, punishmentService, templates);
-        InfoCommands.register(this, punishmentService, staffNotes, altDetection);
+        InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking);
         WardenAdminCommands.register(this, templates);
 
         getServer().getPluginManager().registerEvents(new BanGateListener(punishmentService, ipHashing), this);

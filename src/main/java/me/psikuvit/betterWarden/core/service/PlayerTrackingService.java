@@ -108,4 +108,8 @@ public class PlayerTrackingService {
     public Optional<String> lastIpHash(UUID uuid) {
         return players.findById(uuid.toString()).map(Player::getLastIpHash);
     }
+
+    public Optional<Player> find(UUID uuid) {
+        return players.findById(uuid.toString());
+    }
 }
