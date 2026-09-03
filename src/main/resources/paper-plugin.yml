@@ -1,0 +1,6 @@
+name: BetterWarden
+version: '${version}'
+
+main: me.psikuvit.betterWarden.BetterWarden
+api-version: '26.2'
+load: POSTWORLD
