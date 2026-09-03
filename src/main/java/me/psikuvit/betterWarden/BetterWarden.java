@@ -3,21 +3,25 @@ package me.psikuvit.betterWarden;
 import me.psikuvit.betterWarden.bridge.PaperBridge;
 import me.psikuvit.betterWarden.command.InfoCommands;
 import me.psikuvit.betterWarden.command.PunishmentCommands;
+import me.psikuvit.betterWarden.command.ReportCommands;
 import me.psikuvit.betterWarden.command.WardenAdminCommands;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
+import me.psikuvit.betterWarden.core.service.ChatHistoryService;
 import me.psikuvit.betterWarden.core.service.EscalationService;
 import me.psikuvit.betterWarden.core.service.IpHashingService;
 import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
+import me.psikuvit.betterWarden.core.service.ReportService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
 import me.psikuvit.betterWarden.hook.LuckPermsHook;
 import me.psikuvit.betterWarden.hook.PlaceholderApiHook;
 import me.psikuvit.betterWarden.listener.BanGateListener;
+import me.psikuvit.betterWarden.listener.ChatCaptureListener;
 import me.psikuvit.betterWarden.listener.MuteCommandBlockListener;
 import me.psikuvit.betterWarden.listener.MuteGateListener;
 import me.psikuvit.betterWarden.listener.PlayerTrackingListener;
@@ -83,16 +87,20 @@ public final class BetterWarden extends JavaPlugin {
         CoreConfig coreConfig = springContext.getBean(CoreConfig.class);
         EscalationService escalationService = springContext.getBean(EscalationService.class);
         LangService lang = springContext.getBean(LangService.class);
+        ReportService reportService = springContext.getBean(ReportService.class);
+        ChatHistoryService chatHistory = springContext.getBean(ChatHistoryService.class);
 
         PunishmentCommands.register(this, punishmentService, templates, lang);
         InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking, lang);
         WardenAdminCommands.register(this, templates, escalationService, coreConfig, configFile, lang);
+        ReportCommands.register(this, reportService, lang);
 
         getServer().getPluginManager().registerEvents(new BanGateListener(punishmentService, ipHashing, lang), this);
         getServer().getPluginManager().registerEvents(new MuteGateListener(punishmentService, lang), this);
         getServer().getPluginManager().registerEvents(new MuteCommandBlockListener(punishmentService, lang), this);
         getServer().getPluginManager().registerEvents(new PlayerTrackingListener(playerTracking), this);
         getServer().getPluginManager().registerEvents(new SessionListener(playerTracking), this);
+        getServer().getPluginManager().registerEvents(new ChatCaptureListener(chatHistory), this);
 
         registerHooks(punishmentService);
     }
