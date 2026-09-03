@@ -119,10 +119,23 @@ public final class PunishmentCommands {
             sender.sendMessage("Player not found.");
             return 0;
         }
-        ResolvedReason resolved = resolveReason(reasonOrDefault(ctx), null);
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
-        Punishment punishment = service.issue(target.get().uuid(), target.get().name(), type, resolved.reason(), staffUuid, resolved.duration(), silent, null);
-        sender.sendMessage(type.name() + " issued to " + target.get().name() + " (#" + punishment.getId() + "): " + resolved.reason());
+        String rawReason = reasonOrDefault(ctx);
+
+        Punishment punishment;
+        if (rawReason.startsWith("#")) {
+            Optional<PunishmentTemplate> template = templates.find(rawReason.substring(1));
+            if (template.isEmpty()) {
+                sender.sendMessage("Unknown template: " + rawReason);
+                return 0;
+            }
+            // The template (and its escalation ladder, if any) decides the final type/duration -
+            // that's the whole point of an escalating template, so it can outrank the command typed.
+            punishment = service.issueFromTemplate(target.get().uuid(), target.get().name(), template.get(), staffUuid, silent, null);
+        } else {
+            punishment = service.issue(target.get().uuid(), target.get().name(), type, rawReason, staffUuid, null, silent, null);
+        }
+        sender.sendMessage(punishment.getType() + " issued to " + target.get().name() + " (#" + punishment.getId() + "): " + punishment.getReason());
         return Command.SINGLE_SUCCESS;
     }
 
@@ -141,27 +154,22 @@ public final class PunishmentCommands {
             sender.sendMessage("Player not found.");
             return 0;
         }
-        ResolvedReason resolved = resolveReason(reasonOrDefault(ctx), duration);
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
-        Punishment punishment = service.issue(target.get().uuid(), target.get().name(), type, resolved.reason(), staffUuid, resolved.duration(), silent, null);
-        sender.sendMessage(type.name() + " issued to " + target.get().name() + " (#" + punishment.getId() + "): " + resolved.reason());
-        return Command.SINGLE_SUCCESS;
-    }
+        String rawReason = reasonOrDefault(ctx);
 
-    /** "#key" resolves to a stored template's reason/duration; anything else passes through with fallbackDuration untouched. */
-    private ResolvedReason resolveReason(String rawReason, Duration fallbackDuration) {
+        Punishment punishment;
         if (rawReason.startsWith("#")) {
             Optional<PunishmentTemplate> template = templates.find(rawReason.substring(1));
-            if (template.isPresent()) {
-                PunishmentTemplate t = template.get();
-                Duration duration = t.getDuration() == null ? null : DurationParser.parse(t.getDuration());
-                return new ResolvedReason(t.getReason(), duration);
+            if (template.isEmpty()) {
+                sender.sendMessage("Unknown template: " + rawReason);
+                return 0;
             }
+            punishment = service.issueFromTemplate(target.get().uuid(), target.get().name(), template.get(), staffUuid, silent, null);
+        } else {
+            punishment = service.issue(target.get().uuid(), target.get().name(), type, rawReason, staffUuid, duration, silent, null);
         }
-        return new ResolvedReason(rawReason, fallbackDuration);
-    }
-
-    private record ResolvedReason(String reason, Duration duration) {
+        sender.sendMessage(punishment.getType() + " issued to " + target.get().name() + " (#" + punishment.getId() + "): " + punishment.getReason());
+        return Command.SINGLE_SUCCESS;
     }
 
     private int executeIpBan(CommandContext<CommandSourceStack> ctx) {

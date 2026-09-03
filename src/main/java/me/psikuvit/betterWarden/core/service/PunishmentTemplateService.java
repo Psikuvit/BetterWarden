@@ -20,12 +20,18 @@ public class PunishmentTemplateService {
 
     @Transactional
     public PunishmentTemplate create(String key, String display, PunishmentType type, String duration, String reason) {
+        return create(key, display, type, duration, reason, null);
+    }
+
+    @Transactional
+    public PunishmentTemplate create(String key, String display, PunishmentType type, String duration, String reason, String escalationGroup) {
         PunishmentTemplate template = new PunishmentTemplate();
         template.setKey(key);
         template.setDisplay(display);
         template.setType(type);
         template.setDuration(duration);
         template.setReason(reason);
+        template.setEscalationGroup(escalationGroup);
         return templates.save(template);
     }
 

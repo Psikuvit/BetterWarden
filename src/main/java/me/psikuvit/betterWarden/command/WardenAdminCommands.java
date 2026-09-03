@@ -8,9 +8,12 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import me.psikuvit.betterWarden.core.config.CoreConfig;
+import me.psikuvit.betterWarden.core.model.Escalation;
 import me.psikuvit.betterWarden.core.model.PunishmentTemplate;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
+import me.psikuvit.betterWarden.core.service.EscalationService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -27,17 +30,21 @@ public final class WardenAdminCommands {
     private static final String PERMISSION = "warden.admin";
 
     private final PunishmentTemplateService templates;
+    private final EscalationService escalationService;
     private final CoreConfig config;
     private final File configFile;
 
-    private WardenAdminCommands(PunishmentTemplateService templates, CoreConfig config, File configFile) {
+    private WardenAdminCommands(PunishmentTemplateService templates, EscalationService escalationService,
+                                 CoreConfig config, File configFile) {
         this.templates = templates;
+        this.escalationService = escalationService;
         this.config = config;
         this.configFile = configFile;
     }
 
-    public static void register(JavaPlugin plugin, PunishmentTemplateService templates, CoreConfig config, File configFile) {
-        WardenAdminCommands commands = new WardenAdminCommands(templates, config, configFile);
+    public static void register(JavaPlugin plugin, PunishmentTemplateService templates, EscalationService escalationService,
+                                 CoreConfig config, File configFile) {
+        WardenAdminCommands commands = new WardenAdminCommands(templates, escalationService, config, configFile);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(
@@ -48,13 +55,24 @@ public final class WardenAdminCommands {
                                             .then(argument("key", StringArgumentType.word())
                                                     .then(argument("type", StringArgumentType.word())
                                                             .then(argument("duration", StringArgumentType.word())
-                                                                    .then(argument("reason", StringArgumentType.greedyString())
-                                                                            .executes(commands::executeAdd))))))
+                                                                    .then(argument("group", StringArgumentType.word())
+                                                                            .then(argument("reason", StringArgumentType.greedyString())
+                                                                                    .executes(commands::executeAdd)))))))
                                     .then(literal("remove")
                                             .then(argument("key", StringArgumentType.word())
                                                     .executes(commands::executeRemove)))
                                     .then(literal("list")
                                             .executes(commands::executeList)))
+                            .then(literal("escalation")
+                                    .then(literal("add")
+                                            .then(argument("group", StringArgumentType.word())
+                                                    .then(argument("offence", IntegerArgumentType.integer(1))
+                                                            .then(argument("type", StringArgumentType.word())
+                                                                    .then(argument("duration", StringArgumentType.word())
+                                                                            .executes(commands::executeEscalationAdd))))))
+                                    .then(literal("list")
+                                            .then(argument("group", StringArgumentType.word())
+                                                    .executes(commands::executeEscalationList))))
                             .then(literal("status")
                                     .executes(commands::executeStatus))
                             .then(literal("reload")
@@ -97,6 +115,7 @@ public final class WardenAdminCommands {
         String key = StringArgumentType.getString(ctx, "key");
         String typeStr = StringArgumentType.getString(ctx, "type");
         String duration = StringArgumentType.getString(ctx, "duration");
+        String group = StringArgumentType.getString(ctx, "group");
         String reason = StringArgumentType.getString(ctx, "reason");
 
         PunishmentType type;
@@ -106,13 +125,61 @@ public final class WardenAdminCommands {
             sender.sendMessage("Unknown punishment type: " + typeStr);
             return 0;
         }
-        if ("-".equals(duration) || "none".equalsIgnoreCase(duration)) {
+        if (isNone(duration)) {
+            duration = null;
+        }
+        if (isNone(group)) {
+            group = null;
+        }
+
+        PunishmentTemplate template = templates.create(key, key, type, duration, reason, group);
+        sender.sendMessage("Template #" + template.getKey() + " created (" + type + ", " + (duration == null ? "perm" : duration)
+                + (group == null ? "" : ", escalation group " + group) + ").");
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int executeEscalationAdd(CommandContext<CommandSourceStack> ctx) {
+        CommandSender sender = ctx.getSource().getSender();
+        String group = StringArgumentType.getString(ctx, "group");
+        int offence = IntegerArgumentType.getInteger(ctx, "offence");
+        String typeStr = StringArgumentType.getString(ctx, "type");
+        String duration = StringArgumentType.getString(ctx, "duration");
+
+        PunishmentType type;
+        try {
+            type = PunishmentType.valueOf(typeStr.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            sender.sendMessage("Unknown punishment type: " + typeStr);
+            return 0;
+        }
+        if (isNone(duration)) {
             duration = null;
         }
 
-        PunishmentTemplate template = templates.create(key, key, type, duration, reason);
-        sender.sendMessage("Template #" + template.getKey() + " created (" + type + ", " + (duration == null ? "perm" : duration) + ").");
+        escalationService.addRung(group, offence, type, duration);
+        sender.sendMessage("Escalation rung added: " + group + " offence #" + offence + " -> " + type
+                + " (" + (duration == null ? "perm" : duration) + ")");
         return Command.SINGLE_SUCCESS;
+    }
+
+    private int executeEscalationList(CommandContext<CommandSourceStack> ctx) {
+        CommandSender sender = ctx.getSource().getSender();
+        String group = StringArgumentType.getString(ctx, "group");
+        List<Escalation> rungs = escalationService.list(group);
+        if (rungs.isEmpty()) {
+            sender.sendMessage("No escalation ladder defined for group '" + group + "'.");
+            return Command.SINGLE_SUCCESS;
+        }
+        sender.sendMessage("Escalation ladder for '" + group + "':");
+        for (Escalation rung : rungs) {
+            sender.sendMessage("Offence #" + rung.getOffenceNumber() + " -> " + rung.getType()
+                    + " (" + (rung.getDuration() == null ? "perm" : rung.getDuration()) + ")");
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static boolean isNone(String value) {
+        return "-".equals(value) || "none".equalsIgnoreCase(value);
     }
 
     private int executeRemove(CommandContext<CommandSourceStack> ctx) {
