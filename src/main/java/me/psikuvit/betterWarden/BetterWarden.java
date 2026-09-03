@@ -6,6 +6,7 @@ import me.psikuvit.betterWarden.command.PunishmentCommands;
 import me.psikuvit.betterWarden.command.WardenAdminCommands;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
+import me.psikuvit.betterWarden.core.service.AltDetectionService;
 import me.psikuvit.betterWarden.core.service.IpHashingService;
 import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
@@ -72,9 +73,10 @@ public final class BetterWarden extends JavaPlugin {
         StaffNoteService staffNotes = springContext.getBean(StaffNoteService.class);
         IpHashingService ipHashing = springContext.getBean(IpHashingService.class);
         PunishmentTemplateService templates = springContext.getBean(PunishmentTemplateService.class);
+        AltDetectionService altDetection = springContext.getBean(AltDetectionService.class);
 
         PunishmentCommands.register(this, punishmentService, templates);
-        InfoCommands.register(this, punishmentService, staffNotes);
+        InfoCommands.register(this, punishmentService, staffNotes, altDetection);
         WardenAdminCommands.register(this, templates);
 
         getServer().getPluginManager().registerEvents(new BanGateListener(punishmentService, ipHashing), this);
