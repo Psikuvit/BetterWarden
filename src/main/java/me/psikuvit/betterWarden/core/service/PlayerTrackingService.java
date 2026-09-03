@@ -32,12 +32,8 @@ public class PlayerTrackingService {
     }
 
     @Async("wardenExecutor")
-    public void trackJoinAsync(UUID uuid, String name, String rawIp) {
-        trackJoin(uuid, name, rawIp);
-    }
-
     @Transactional
-    public void trackJoin(UUID uuid, String name, String rawIp) {
+    public void trackJoinAsync(UUID uuid, String name, String rawIp) {
         String ipHash = rawIp == null ? null : ipHashing.hash(rawIp);
         Instant now = Instant.now();
 
