@@ -1,8 +1,19 @@
 package me.psikuvit.betterWarden;
 
 import me.psikuvit.betterWarden.bridge.PaperBridge;
+import me.psikuvit.betterWarden.command.InfoCommands;
+import me.psikuvit.betterWarden.command.PunishmentCommands;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
+import me.psikuvit.betterWarden.core.service.IpHashingService;
+import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
+import me.psikuvit.betterWarden.core.service.PunishmentService;
+import me.psikuvit.betterWarden.core.service.StaffNoteService;
+import me.psikuvit.betterWarden.listener.BanGateListener;
+import me.psikuvit.betterWarden.listener.MuteCommandBlockListener;
+import me.psikuvit.betterWarden.listener.MuteGateListener;
+import me.psikuvit.betterWarden.listener.PlayerTrackingListener;
+import me.psikuvit.betterWarden.listener.SessionListener;
 import me.psikuvit.betterWarden.scheduler.PaperScheduler;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.springframework.boot.Banner;
@@ -47,11 +58,26 @@ public final class BetterWarden extends JavaPlugin {
                     })
                     .run();
             long tookMs = System.currentTimeMillis() - start;
-            getLogger().info("Spring context booted in " + tookMs + "ms.");
+            getLogger().info("Spring context booted in " + tookMs + "ms. Try http://localhost:8095/health");
         } catch (Throwable t) {
             getLogger().severe("Failed to boot embedded Spring context: " + t);
             t.printStackTrace();
+            return;
         }
+
+        PunishmentService punishmentService = springContext.getBean(PunishmentService.class);
+        PlayerTrackingService playerTracking = springContext.getBean(PlayerTrackingService.class);
+        StaffNoteService staffNotes = springContext.getBean(StaffNoteService.class);
+        IpHashingService ipHashing = springContext.getBean(IpHashingService.class);
+
+        PunishmentCommands.register(this, punishmentService);
+        InfoCommands.register(this, punishmentService, staffNotes);
+
+        getServer().getPluginManager().registerEvents(new BanGateListener(punishmentService, ipHashing), this);
+        getServer().getPluginManager().registerEvents(new MuteGateListener(punishmentService), this);
+        getServer().getPluginManager().registerEvents(new MuteCommandBlockListener(punishmentService), this);
+        getServer().getPluginManager().registerEvents(new PlayerTrackingListener(playerTracking), this);
+        getServer().getPluginManager().registerEvents(new SessionListener(playerTracking), this);
     }
 
     @Override
