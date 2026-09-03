@@ -1,11 +1,14 @@
 package me.psikuvit.betterWarden;
 
+import me.psikuvit.betterWarden.bridge.PaperBridge;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
+import me.psikuvit.betterWarden.scheduler.PaperScheduler;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.springframework.boot.Banner;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.io.DefaultResourceLoader;
 
 import java.io.File;
@@ -36,6 +39,12 @@ public final class BetterWarden extends JavaPlugin {
             springContext = new SpringApplicationBuilder(WardenSpringApp.class)
                     .resourceLoader(new DefaultResourceLoader(getClassLoader()))
                     .bannerMode(Banner.Mode.OFF)
+                    .initializers(context -> {
+                        if (context instanceof GenericApplicationContext gac) {
+                            gac.getBeanFactory().registerSingleton("platformBridge",
+                                    new PaperBridge(new PaperScheduler(this)));
+                        }
+                    })
                     .run();
             long tookMs = System.currentTimeMillis() - start;
             getLogger().info("Spring context booted in " + tookMs + "ms.");
