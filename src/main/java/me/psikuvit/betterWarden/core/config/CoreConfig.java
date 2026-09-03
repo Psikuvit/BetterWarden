@@ -13,6 +13,7 @@ public class CoreConfig {
     private LoginGate loginGate = new LoginGate();
     private AltDetection altDetection = new AltDetection();
     private Security security = new Security();
+    private Maintenance maintenance = new Maintenance();
 
     public int getConfigVersion() {
         return configVersion;
@@ -68,6 +69,14 @@ public class CoreConfig {
 
     public void setSecurity(Security security) {
         this.security = security;
+    }
+
+    public Maintenance getMaintenance() {
+        return maintenance;
+    }
+
+    public void setMaintenance(Maintenance maintenance) {
+        this.maintenance = maintenance;
     }
 
     public static class Storage {
@@ -184,6 +193,27 @@ public class CoreConfig {
 
         public void setIpSalt(String ipSalt) {
             this.ipSalt = ipSalt;
+        }
+    }
+
+    public static class Maintenance {
+        private int reportAutoCloseHours = 72;
+        private int ticketAutoCloseHours = 168;
+
+        public int getReportAutoCloseHours() {
+            return reportAutoCloseHours;
+        }
+
+        public void setReportAutoCloseHours(int reportAutoCloseHours) {
+            this.reportAutoCloseHours = reportAutoCloseHours;
+        }
+
+        public int getTicketAutoCloseHours() {
+            return ticketAutoCloseHours;
+        }
+
+        public void setTicketAutoCloseHours(int ticketAutoCloseHours) {
+            this.ticketAutoCloseHours = ticketAutoCloseHours;
         }
     }
 }

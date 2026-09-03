@@ -82,6 +82,17 @@ public class TicketService {
         return found;
     }
 
+    /** Only OPEN (never-touched) tickets - IN_PROGRESS ones have an assignee actively on them. */
+    @Transactional
+    public int closeStale(java.time.Duration maxAge) {
+        List<Ticket> stale = tickets.findByStatusAndCreatedAtBefore(TicketStatus.OPEN, Instant.now().minus(maxAge));
+        for (Ticket t : stale) {
+            t.setStatus(TicketStatus.CLOSED);
+            t.setClosedAt(Instant.now());
+        }
+        return stale.size();
+    }
+
     public List<Ticket> list(TicketStatus status) {
         return status == null ? tickets.findAllByOrderByCreatedAtDesc() : tickets.findByStatusOrderByCreatedAtDesc(status);
     }

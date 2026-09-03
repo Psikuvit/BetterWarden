@@ -23,3 +23,7 @@ warden:
 
   alt-detection:
     ban-evasion-auto-action: false
+
+  maintenance:
+    report-auto-close-hours: 72
+    ticket-auto-close-hours: 168
