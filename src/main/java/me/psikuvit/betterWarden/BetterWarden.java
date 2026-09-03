@@ -20,6 +20,7 @@ import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.core.service.ReportService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
 import me.psikuvit.betterWarden.core.service.TicketService;
+import me.psikuvit.betterWarden.gui.MenuListener;
 import me.psikuvit.betterWarden.hook.LuckPermsHook;
 import me.psikuvit.betterWarden.hook.PlaceholderApiHook;
 import me.psikuvit.betterWarden.listener.BanGateListener;
@@ -105,6 +106,7 @@ public final class BetterWarden extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerTrackingListener(playerTracking), this);
         getServer().getPluginManager().registerEvents(new SessionListener(playerTracking), this);
         getServer().getPluginManager().registerEvents(new ChatCaptureListener(chatHistory), this);
+        getServer().getPluginManager().registerEvents(new MenuListener(), this);
 
         registerHooks(punishmentService);
     }

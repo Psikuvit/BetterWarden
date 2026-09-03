@@ -13,6 +13,7 @@ import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
+import me.psikuvit.betterWarden.gui.PlayerLookupMenu;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -113,6 +114,14 @@ public final class InfoCommands {
             return 0;
         }
         UUID uuid = target.get().uuid();
+
+        // Spec says /lookup opens a GUI - do that for players; console has no inventory, so it keeps the chat form.
+        if (sender instanceof Player staff) {
+            new PlayerLookupMenu(uuid, target.get().name(), punishmentService, noteService, altDetectionService, playerTracking)
+                    .open(staff);
+            return Command.SINGLE_SUCCESS;
+        }
+
         Optional<me.psikuvit.betterWarden.core.model.Player> player = playerTracking.find(uuid);
 
         Msg.send(sender, lang.get("lookup.header", target.get().name()));
