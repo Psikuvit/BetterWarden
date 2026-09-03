@@ -11,7 +11,9 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.core.model.Report;
 import me.psikuvit.betterWarden.core.model.ReportStatus;
 import me.psikuvit.betterWarden.core.service.LangService;
+import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.ReportService;
+import me.psikuvit.betterWarden.gui.ReportQueueMenu;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -28,15 +30,17 @@ import static io.papermc.paper.command.brigadier.Commands.literal;
 public final class ReportCommands {
 
     private final ReportService service;
+    private final PlayerTrackingService playerTracking;
     private final LangService lang;
 
-    private ReportCommands(ReportService service, LangService lang) {
+    private ReportCommands(ReportService service, PlayerTrackingService playerTracking, LangService lang) {
         this.service = service;
+        this.playerTracking = playerTracking;
         this.lang = lang;
     }
 
-    public static void register(JavaPlugin plugin, ReportService service, LangService lang) {
-        ReportCommands commands = new ReportCommands(service, lang);
+    public static void register(JavaPlugin plugin, ReportService service, PlayerTrackingService playerTracking, LangService lang) {
+        ReportCommands commands = new ReportCommands(service, playerTracking, lang);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(commands.report().build(), "Report a player to staff");
@@ -93,6 +97,12 @@ public final class ReportCommands {
 
     private int executeList(CommandContext<CommandSourceStack> ctx, ReportStatus status) {
         CommandSender sender = ctx.getSource().getSender();
+
+        if (sender instanceof Player staff) {
+            new ReportQueueMenu(service, playerTracking, status).open(staff);
+            return Command.SINGLE_SUCCESS;
+        }
+
         List<Report> reports = service.list(status);
         if (reports.isEmpty()) {
             Msg.send(sender, lang.get("report.list-empty"));
