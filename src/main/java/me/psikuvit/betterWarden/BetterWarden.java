@@ -10,6 +10,7 @@ import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
 import me.psikuvit.betterWarden.core.service.EscalationService;
 import me.psikuvit.betterWarden.core.service.IpHashingService;
+import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
@@ -81,14 +82,15 @@ public final class BetterWarden extends JavaPlugin {
         AltDetectionService altDetection = springContext.getBean(AltDetectionService.class);
         CoreConfig coreConfig = springContext.getBean(CoreConfig.class);
         EscalationService escalationService = springContext.getBean(EscalationService.class);
+        LangService lang = springContext.getBean(LangService.class);
 
-        PunishmentCommands.register(this, punishmentService, templates);
-        InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking);
-        WardenAdminCommands.register(this, templates, escalationService, coreConfig, configFile);
+        PunishmentCommands.register(this, punishmentService, templates, lang);
+        InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking, lang);
+        WardenAdminCommands.register(this, templates, escalationService, coreConfig, configFile, lang);
 
-        getServer().getPluginManager().registerEvents(new BanGateListener(punishmentService, ipHashing), this);
-        getServer().getPluginManager().registerEvents(new MuteGateListener(punishmentService), this);
-        getServer().getPluginManager().registerEvents(new MuteCommandBlockListener(punishmentService), this);
+        getServer().getPluginManager().registerEvents(new BanGateListener(punishmentService, ipHashing, lang), this);
+        getServer().getPluginManager().registerEvents(new MuteGateListener(punishmentService, lang), this);
+        getServer().getPluginManager().registerEvents(new MuteCommandBlockListener(punishmentService, lang), this);
         getServer().getPluginManager().registerEvents(new PlayerTrackingListener(playerTracking), this);
         getServer().getPluginManager().registerEvents(new SessionListener(playerTracking), this);
 

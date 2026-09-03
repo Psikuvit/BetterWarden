@@ -1,6 +1,7 @@
 package me.psikuvit.betterWarden.command;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -12,8 +13,8 @@ import me.psikuvit.betterWarden.core.model.Escalation;
 import me.psikuvit.betterWarden.core.model.PunishmentTemplate;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
 import me.psikuvit.betterWarden.core.service.EscalationService;
+import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -24,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
 import java.util.List;
@@ -42,19 +44,21 @@ public final class WardenAdminCommands {
     private final EscalationService escalationService;
     private final CoreConfig config;
     private final File configFile;
+    private final LangService lang;
 
     private WardenAdminCommands(JavaPlugin plugin, PunishmentTemplateService templates, EscalationService escalationService,
-                                 CoreConfig config, File configFile) {
+                                 CoreConfig config, File configFile, LangService lang) {
         this.plugin = plugin;
         this.templates = templates;
         this.escalationService = escalationService;
         this.config = config;
         this.configFile = configFile;
+        this.lang = lang;
     }
 
     public static void register(JavaPlugin plugin, PunishmentTemplateService templates, EscalationService escalationService,
-                                 CoreConfig config, File configFile) {
-        WardenAdminCommands commands = new WardenAdminCommands(plugin, templates, escalationService, config, configFile);
+                                 CoreConfig config, File configFile, LangService lang) {
+        WardenAdminCommands commands = new WardenAdminCommands(plugin, templates, escalationService, config, configFile, lang);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(
@@ -96,16 +100,16 @@ public final class WardenAdminCommands {
 
     private int executeStatus(CommandContext<CommandSourceStack> ctx) {
         CommandSender sender = ctx.getSource().getSender();
-        sender.sendMessage("=== BetterWarden status ===");
-        sender.sendMessage("Server: " + config.getServerName());
-        sender.sendMessage("Mode: HOST (single server, no proxy)");
-        sender.sendMessage("Storage: " + config.getStorage().getType());
-        sender.sendMessage("Login gate fail-open: " + config.getLoginGate().isFailOpen());
+        Msg.send(sender, lang.get("admin.status-header"));
+        Msg.send(sender, lang.get("admin.status-server", config.getServerName()));
+        Msg.send(sender, lang.get("admin.status-mode"));
+        Msg.send(sender, lang.get("admin.status-storage", config.getStorage().getType()));
+        Msg.send(sender, lang.get("admin.status-login-gate", config.getLoginGate().isFailOpen()));
         try {
             int count = templates.list().size();
-            sender.sendMessage("Database: OK (" + count + " punishment template(s))");
+            Msg.send(sender, lang.get("admin.status-db-ok", count));
         } catch (Exception e) {
-            sender.sendMessage("Database: UNREACHABLE - " + e.getMessage());
+            Msg.send(sender, lang.get("admin.status-db-unreachable", e.getMessage()));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -114,10 +118,10 @@ public final class WardenAdminCommands {
         CommandSender sender = ctx.getSource().getSender();
         try {
             ConfigBootstrap.validate(configFile);
-            sender.sendMessage("config.yml re-read successfully.");
-            sender.sendMessage("Note: storage/port/Flyway settings only take effect on a full restart.");
+            Msg.send(sender, lang.get("admin.reload-ok"));
+            Msg.send(sender, lang.get("admin.reload-note"));
         } catch (Exception e) {
-            sender.sendMessage("config.yml failed to parse: " + e.getMessage());
+            Msg.send(sender, lang.get("admin.reload-failed", e.getMessage()));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -145,16 +149,16 @@ public final class WardenAdminCommands {
         }
 
         File debugDir = new File(plugin.getDataFolder(), "debug");
-        String filename = "debug-" + DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(java.time.LocalDateTime.now()) + ".txt";
+        String filename = "debug-" + DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now()) + ".txt";
         try {
             if (!debugDir.exists() && !debugDir.mkdirs()) {
                 throw new IOException("Could not create " + debugDir);
             }
             File outFile = new File(debugDir, filename);
             Files.writeString(outFile.toPath(), report, StandardCharsets.UTF_8);
-            sender.sendMessage("Debug report written to plugins/BetterWarden/debug/" + filename);
+            Msg.send(sender, lang.get("admin.debug-written", filename));
         } catch (IOException e) {
-            sender.sendMessage("Could not write debug report: " + e.getMessage());
+            Msg.send(sender, lang.get("admin.debug-write-failed", e.getMessage()));
             sender.sendMessage(report.toString());
         }
         return Command.SINGLE_SUCCESS;
@@ -182,7 +186,7 @@ public final class WardenAdminCommands {
         try {
             type = PunishmentType.valueOf(typeStr.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            sender.sendMessage("Unknown punishment type: " + typeStr);
+            Msg.send(sender, lang.get("admin.unknown-type", typeStr));
             return 0;
         }
         if (isNone(duration)) {
@@ -193,8 +197,8 @@ public final class WardenAdminCommands {
         }
 
         PunishmentTemplate template = templates.create(key, key, type, duration, reason, group);
-        sender.sendMessage("Template #" + template.getKey() + " created (" + type + ", " + (duration == null ? "perm" : duration)
-                + (group == null ? "" : ", escalation group " + group) + ").");
+        Msg.send(sender, lang.get("admin.template-created", template.getKey(), type, duration == null ? "perm" : duration,
+                group == null ? "" : ", escalation group " + group));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -209,7 +213,7 @@ public final class WardenAdminCommands {
         try {
             type = PunishmentType.valueOf(typeStr.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            sender.sendMessage("Unknown punishment type: " + typeStr);
+            Msg.send(sender, lang.get("admin.unknown-type", typeStr));
             return 0;
         }
         if (isNone(duration)) {
@@ -217,8 +221,7 @@ public final class WardenAdminCommands {
         }
 
         escalationService.addRung(group, offence, type, duration);
-        sender.sendMessage("Escalation rung added: " + group + " offence #" + offence + " -> " + type
-                + " (" + (duration == null ? "perm" : duration) + ")");
+        Msg.send(sender, lang.get("admin.escalation-added", group, offence, type, duration == null ? "perm" : duration));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -227,13 +230,13 @@ public final class WardenAdminCommands {
         String group = StringArgumentType.getString(ctx, "group");
         List<Escalation> rungs = escalationService.list(group);
         if (rungs.isEmpty()) {
-            sender.sendMessage("No escalation ladder defined for group '" + group + "'.");
+            Msg.send(sender, lang.get("admin.escalation-list-empty", group));
             return Command.SINGLE_SUCCESS;
         }
-        sender.sendMessage("Escalation ladder for '" + group + "':");
+        Msg.send(sender, lang.get("admin.escalation-list-header", group));
         for (Escalation rung : rungs) {
-            sender.sendMessage("Offence #" + rung.getOffenceNumber() + " -> " + rung.getType()
-                    + " (" + (rung.getDuration() == null ? "perm" : rung.getDuration()) + ")");
+            Msg.send(sender, lang.get("admin.escalation-list-line", rung.getOffenceNumber(), rung.getType(),
+                    rung.getDuration() == null ? "perm" : rung.getDuration()));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -246,9 +249,9 @@ public final class WardenAdminCommands {
         CommandSender sender = ctx.getSource().getSender();
         String key = StringArgumentType.getString(ctx, "key");
         if (templates.delete(key)) {
-            sender.sendMessage("Template #" + key + " removed.");
+            Msg.send(sender, lang.get("admin.template-removed", key));
         } else {
-            sender.sendMessage("No template found for #" + key);
+            Msg.send(sender, lang.get("admin.template-not-found", key));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -257,12 +260,13 @@ public final class WardenAdminCommands {
         CommandSender sender = ctx.getSource().getSender();
         List<PunishmentTemplate> all = templates.list();
         if (all.isEmpty()) {
-            sender.sendMessage("No punishment templates configured.");
+            Msg.send(sender, lang.get("admin.template-list-empty"));
             return Command.SINGLE_SUCCESS;
         }
-        sender.sendMessage("Punishment templates:");
+        Msg.send(sender, lang.get("admin.template-list-header"));
         for (PunishmentTemplate t : all) {
-            sender.sendMessage("#" + t.getKey() + " " + t.getType() + " [" + (t.getDuration() == null ? "perm" : t.getDuration()) + "] " + t.getReason());
+            Msg.send(sender, lang.get("admin.template-list-line", t.getKey(), t.getType(),
+                    t.getDuration() == null ? "perm" : t.getDuration(), t.getReason()));
         }
         return Command.SINGLE_SUCCESS;
     }

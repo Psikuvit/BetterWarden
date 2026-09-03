@@ -11,6 +11,7 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.model.PunishmentTemplate;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
+import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.core.util.DurationParser;
@@ -45,14 +46,16 @@ public final class PunishmentCommands {
 
     private final PunishmentService service;
     private final PunishmentTemplateService templates;
+    private final LangService lang;
 
-    private PunishmentCommands(PunishmentService service, PunishmentTemplateService templates) {
+    private PunishmentCommands(PunishmentService service, PunishmentTemplateService templates, LangService lang) {
         this.service = service;
         this.templates = templates;
+        this.lang = lang;
     }
 
-    public static void register(JavaPlugin plugin, PunishmentService service, PunishmentTemplateService templates) {
-        PunishmentCommands commands = new PunishmentCommands(service, templates);
+    public static void register(JavaPlugin plugin, PunishmentService service, PunishmentTemplateService templates, LangService lang) {
+        PunishmentCommands commands = new PunishmentCommands(service, templates, lang);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(commands.punishFixed("ban", "warden.ban", PunishmentType.BAN, false).build(), "Ban a player");
@@ -116,7 +119,7 @@ public final class PunishmentCommands {
         CommandSender sender = ctx.getSource().getSender();
         Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
         if (target.isEmpty()) {
-            sender.sendMessage("Player not found.");
+            Msg.send(sender, lang.get("common.player-not-found"));
             return 0;
         }
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
@@ -126,7 +129,7 @@ public final class PunishmentCommands {
         if (rawReason.startsWith("#")) {
             Optional<PunishmentTemplate> template = templates.find(rawReason.substring(1));
             if (template.isEmpty()) {
-                sender.sendMessage("Unknown template: " + rawReason);
+                Msg.send(sender, lang.get("punish.unknown-template", rawReason));
                 return 0;
             }
             // The template (and its escalation ladder, if any) decides the final type/duration -
@@ -135,7 +138,7 @@ public final class PunishmentCommands {
         } else {
             punishment = service.issue(target.get().uuid(), target.get().name(), type, rawReason, staffUuid, null, silent, null);
         }
-        sender.sendMessage(punishment.getType() + " issued to " + target.get().name() + " (#" + punishment.getId() + "): " + punishment.getReason());
+        Msg.send(sender, lang.get("punish.issued", punishment.getType(), target.get().name(), punishment.getId(), punishment.getReason()));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -146,12 +149,12 @@ public final class PunishmentCommands {
         try {
             duration = DurationParser.parse(durationStr);
         } catch (IllegalArgumentException e) {
-            sender.sendMessage("Invalid duration: " + durationStr);
+            Msg.send(sender, lang.get("punish.invalid-duration", durationStr));
             return 0;
         }
         Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
         if (target.isEmpty()) {
-            sender.sendMessage("Player not found.");
+            Msg.send(sender, lang.get("common.player-not-found"));
             return 0;
         }
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
@@ -161,14 +164,14 @@ public final class PunishmentCommands {
         if (rawReason.startsWith("#")) {
             Optional<PunishmentTemplate> template = templates.find(rawReason.substring(1));
             if (template.isEmpty()) {
-                sender.sendMessage("Unknown template: " + rawReason);
+                Msg.send(sender, lang.get("punish.unknown-template", rawReason));
                 return 0;
             }
             punishment = service.issueFromTemplate(target.get().uuid(), target.get().name(), template.get(), staffUuid, silent, null);
         } else {
             punishment = service.issue(target.get().uuid(), target.get().name(), type, rawReason, staffUuid, duration, silent, null);
         }
-        sender.sendMessage(punishment.getType() + " issued to " + target.get().name() + " (#" + punishment.getId() + "): " + punishment.getReason());
+        Msg.send(sender, lang.get("punish.issued", punishment.getType(), target.get().name(), punishment.getId(), punishment.getReason()));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -176,13 +179,13 @@ public final class PunishmentCommands {
         CommandSender sender = ctx.getSource().getSender();
         Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
         if (target.isEmpty()) {
-            sender.sendMessage("Player not found.");
+            Msg.send(sender, lang.get("common.player-not-found"));
             return 0;
         }
         String reason = reasonOrDefault(ctx);
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
         Punishment punishment = service.issueIpBan(target.get().uuid(), target.get().name(), reason, staffUuid, null, false, null);
-        sender.sendMessage("IPBAN issued to " + target.get().name() + " (#" + punishment.getId() + "): " + reason);
+        Msg.send(sender, lang.get("punish.ipban-issued", target.get().name(), punishment.getId(), reason));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -190,14 +193,14 @@ public final class PunishmentCommands {
         CommandSender sender = ctx.getSource().getSender();
         Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
         if (target.isEmpty()) {
-            sender.sendMessage("Player not found.");
+            Msg.send(sender, lang.get("common.player-not-found"));
             return 0;
         }
         List<Punishment> active = service.activePunishments(target.get().uuid()).stream()
                 .filter(p -> types.contains(p.getType()))
                 .toList();
         if (active.isEmpty()) {
-            sender.sendMessage(target.get().name() + " has no matching active punishment.");
+            Msg.send(sender, lang.get("punish.no-active-punishment", target.get().name()));
             return 0;
         }
         String reason = reasonOrDefault(ctx);
@@ -205,15 +208,15 @@ public final class PunishmentCommands {
         for (Punishment p : active) {
             service.revoke(p.getId(), staffUuid, reason);
         }
-        sender.sendMessage("Revoked " + active.size() + " punishment(s) for " + target.get().name());
+        Msg.send(sender, lang.get("punish.revoked", active.size(), target.get().name()));
         return Command.SINGLE_SUCCESS;
     }
 
-    private static String reasonOrDefault(CommandContext<CommandSourceStack> ctx) {
+    private String reasonOrDefault(CommandContext<CommandSourceStack> ctx) {
         try {
             return StringArgumentType.getString(ctx, "reason");
         } catch (IllegalArgumentException e) {
-            return "No reason specified";
+            return lang.get("punish.no-reason");
         }
     }
 }

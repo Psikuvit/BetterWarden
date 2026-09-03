@@ -9,6 +9,7 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
+import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
@@ -29,18 +30,20 @@ public final class InfoCommands {
     private final StaffNoteService noteService;
     private final AltDetectionService altDetectionService;
     private final PlayerTrackingService playerTracking;
+    private final LangService lang;
 
     private InfoCommands(PunishmentService punishmentService, StaffNoteService noteService,
-                          AltDetectionService altDetectionService, PlayerTrackingService playerTracking) {
+                          AltDetectionService altDetectionService, PlayerTrackingService playerTracking, LangService lang) {
         this.punishmentService = punishmentService;
         this.noteService = noteService;
         this.altDetectionService = altDetectionService;
         this.playerTracking = playerTracking;
+        this.lang = lang;
     }
 
     public static void register(JavaPlugin plugin, PunishmentService punishmentService, StaffNoteService noteService,
-                                 AltDetectionService altDetectionService, PlayerTrackingService playerTracking) {
-        InfoCommands commands = new InfoCommands(punishmentService, noteService, altDetectionService, playerTracking);
+                                 AltDetectionService altDetectionService, PlayerTrackingService playerTracking, LangService lang) {
+        InfoCommands commands = new InfoCommands(punishmentService, noteService, altDetectionService, playerTracking, lang);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(commands.history().build(), "View a player's punishment history");
@@ -79,17 +82,17 @@ public final class InfoCommands {
         CommandSender sender = ctx.getSource().getSender();
         Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
         if (target.isEmpty()) {
-            sender.sendMessage("Player not found.");
+            Msg.send(sender, lang.get("common.player-not-found"));
             return 0;
         }
         List<me.psikuvit.betterWarden.core.model.Player> alts = altDetectionService.findAlts(target.get().uuid());
         if (alts.isEmpty()) {
-            sender.sendMessage("No known alts for " + target.get().name() + ".");
+            Msg.send(sender, lang.get("alts.none", target.get().name()));
             return Command.SINGLE_SUCCESS;
         }
-        sender.sendMessage("Alts for " + target.get().name() + " (shared IP history):");
+        Msg.send(sender, lang.get("alts.header", target.get().name()));
         for (me.psikuvit.betterWarden.core.model.Player alt : alts) {
-            sender.sendMessage("- " + alt.getLastName());
+            Msg.send(sender, lang.get("alts.line", alt.getLastName()));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -106,20 +109,20 @@ public final class InfoCommands {
         CommandSender sender = ctx.getSource().getSender();
         Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
         if (target.isEmpty()) {
-            sender.sendMessage("Player not found.");
+            Msg.send(sender, lang.get("common.player-not-found"));
             return 0;
         }
         UUID uuid = target.get().uuid();
         Optional<me.psikuvit.betterWarden.core.model.Player> player = playerTracking.find(uuid);
 
-        sender.sendMessage("=== " + target.get().name() + " ===");
+        Msg.send(sender, lang.get("lookup.header", target.get().name()));
         player.ifPresentOrElse(p -> {
-            sender.sendMessage("First seen: " + p.getFirstSeen());
-            sender.sendMessage("Last seen: " + p.getLastSeen());
-        }, () -> sender.sendMessage("No profile on record yet."));
-        sender.sendMessage("Active punishments: " + punishmentService.activePunishments(uuid).size());
-        sender.sendMessage("Staff notes: " + noteService.list(uuid).size());
-        sender.sendMessage("Known alts: " + altDetectionService.findAlts(uuid).size());
+            Msg.send(sender, lang.get("lookup.first-seen", p.getFirstSeen()));
+            Msg.send(sender, lang.get("lookup.last-seen", p.getLastSeen()));
+        }, () -> Msg.send(sender, lang.get("lookup.no-profile")));
+        Msg.send(sender, lang.get("lookup.active-punishments", punishmentService.activePunishments(uuid).size()));
+        Msg.send(sender, lang.get("lookup.staff-notes", noteService.list(uuid).size()));
+        Msg.send(sender, lang.get("lookup.known-alts", altDetectionService.findAlts(uuid).size()));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -127,18 +130,18 @@ public final class InfoCommands {
         CommandSender sender = ctx.getSource().getSender();
         Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
         if (target.isEmpty()) {
-            sender.sendMessage("Player not found.");
+            Msg.send(sender, lang.get("common.player-not-found"));
             return 0;
         }
         List<Punishment> history = punishmentService.history(target.get().uuid(), 10);
         if (history.isEmpty()) {
-            sender.sendMessage(target.get().name() + " has no punishment history.");
+            Msg.send(sender, lang.get("history.empty", target.get().name()));
             return Command.SINGLE_SUCCESS;
         }
-        sender.sendMessage("Punishment history for " + target.get().name() + ":");
+        Msg.send(sender, lang.get("history.header", target.get().name()));
         for (Punishment p : history) {
-            String status = p.isActive() ? "ACTIVE" : "expired/revoked";
-            sender.sendMessage("#" + p.getId() + " " + p.getType() + " [" + status + "] " + p.getReason());
+            String status = p.isActive() ? lang.get("history.status-active") : lang.get("history.status-inactive");
+            Msg.send(sender, lang.get("history.line", p.getId(), p.getType(), status, p.getReason()));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -147,13 +150,13 @@ public final class InfoCommands {
         CommandSender sender = ctx.getSource().getSender();
         Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
         if (target.isEmpty()) {
-            sender.sendMessage("Player not found.");
+            Msg.send(sender, lang.get("common.player-not-found"));
             return 0;
         }
         String text = StringArgumentType.getString(ctx, "text");
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
         noteService.add(target.get().uuid(), staffUuid, text);
-        sender.sendMessage("Note added to " + target.get().name() + ".");
+        Msg.send(sender, lang.get("note.added", target.get().name()));
         return Command.SINGLE_SUCCESS;
     }
 }

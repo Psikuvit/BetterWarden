@@ -1,5 +1,6 @@
 package me.psikuvit.betterWarden.listener;
 
+import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.event.EventHandler;
@@ -15,10 +16,12 @@ public class MuteCommandBlockListener implements Listener {
     private static final Set<String> BLOCKED = Set.of("msg", "message", "tell", "w", "r", "reply", "me");
 
     private final PunishmentService service;
+    private final LangService lang;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
-    public MuteCommandBlockListener(PunishmentService service) {
+    public MuteCommandBlockListener(PunishmentService service, LangService lang) {
         this.service = service;
+        this.lang = lang;
     }
 
     @EventHandler
@@ -31,7 +34,7 @@ public class MuteCommandBlockListener implements Listener {
         }
         service.activeMute(event.getPlayer().getUniqueId()).ifPresent(mute -> {
             event.setCancelled(true);
-            event.getPlayer().sendMessage(miniMessage.deserialize("<red>You are muted: <gray>" + mute.getReason()));
+            event.getPlayer().sendMessage(miniMessage.deserialize(lang.get("gate.muted-command", mute.getReason())));
         });
     }
 }

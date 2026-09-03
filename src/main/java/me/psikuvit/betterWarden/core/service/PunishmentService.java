@@ -37,11 +37,12 @@ public class PunishmentService {
     private final PlayerTrackingService playerTracking;
     private final PunishmentCache cache;
     private final EventBus eventBus;
+    private final LangService lang;
 
     public PunishmentService(PunishmentRepository punishments,
                               PunishmentRevokeRepository revokes, EscalationRepository escalations,
                               AuditLogRepository auditLog, PlatformBridge bridge, PlayerTrackingService playerTracking,
-                              PunishmentCache cache, EventBus eventBus) {
+                              PunishmentCache cache, EventBus eventBus, LangService lang) {
         this.punishments = punishments;
         this.revokes = revokes;
         this.escalations = escalations;
@@ -50,6 +51,7 @@ public class PunishmentService {
         this.playerTracking = playerTracking;
         this.cache = cache;
         this.eventBus = eventBus;
+        this.lang = lang;
     }
 
     @Transactional
@@ -183,14 +185,14 @@ public class PunishmentService {
                 }
             }
             case MUTE, TEMPMUTE ->
-                    bridge.message(targetUuid, "<red>You have been muted: <gray>" + punishment.getReason());
-            case WARN -> bridge.message(targetUuid, "<yellow>You have been warned: <gray>" + punishment.getReason());
+                    bridge.message(targetUuid, lang.get("punish.muted-message", punishment.getReason()));
+            case WARN -> bridge.message(targetUuid, lang.get("punish.warned-message", punishment.getReason()));
         }
     }
 
     private String kickMessage(Punishment p) {
-        String duration = p.isPermanent() ? "Permanent" : "Until " + p.getExpiresAt();
-        return "<red>You are banned.\n<gray>Reason: " + p.getReason() + "\n<gray>Duration: " + duration;
+        String duration = p.isPermanent() ? lang.get("punish.permanent") : lang.get("punish.until", p.getExpiresAt());
+        return lang.get("punish.kicked-message", p.getReason(), duration);
     }
 
     private void audit(UUID staffUuid, String action, String target, String payload) {

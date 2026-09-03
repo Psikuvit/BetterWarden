@@ -1,0 +1,73 @@
+# BetterWarden messages. {0}, {1}, ... are positional placeholders.
+# MiniMessage tags (<red>, <gray>, ...) are resolved after substitution.
+
+common:
+  player-not-found: "<red>Player not found."
+
+punish:
+  issued: "<gray>{0} issued to <white>{1}</white> (#{2}): {3}"
+  ipban-issued: "<gray>IPBAN issued to <white>{0}</white> (#{1}): {2}"
+  no-reason: "No reason specified"
+  invalid-duration: "<red>Invalid duration: {0}"
+  unknown-template: "<red>Unknown template: {0}"
+  no-active-punishment: "<gray>{0} has no matching active punishment."
+  revoked: "<gray>Revoked {0} punishment(s) for <white>{1}</white>"
+  kicked-message: "<red>You are banned.\n<gray>Reason: {0}\n<gray>Duration: {1}"
+  muted-message: "<red>You have been muted: <gray>{0}"
+  warned-message: "<yellow>You have been warned: <gray>{0}"
+  permanent: "Permanent"
+  until: "Until {0}"
+
+gate:
+  banned: "<red>You are banned.\n<gray>Reason: {0}\n<gray>Duration: {1}"
+  muted-chat: "<red>You are muted: <gray>{0}"
+  muted-command: "<red>You are muted: <gray>{0}"
+
+history:
+  header: "<gray>Punishment history for <white>{0}</white>:"
+  empty: "<gray>{0} has no punishment history."
+  line: "<gray>#{0} {1} [{2}] {3}"
+  status-active: "ACTIVE"
+  status-inactive: "expired/revoked"
+
+note:
+  added: "<gray>Note added to <white>{0}</white>."
+
+alts:
+  none: "<gray>No known alts for <white>{0}</white>."
+  header: "<gray>Alts for <white>{0}</white> (shared IP history):"
+  line: "<gray>- {0}"
+
+lookup:
+  header: "<white>=== {0} ==="
+  first-seen: "<gray>First seen: {0}"
+  last-seen: "<gray>Last seen: {0}"
+  no-profile: "<gray>No profile on record yet."
+  active-punishments: "<gray>Active punishments: {0}"
+  staff-notes: "<gray>Staff notes: {0}"
+  known-alts: "<gray>Known alts: {0}"
+
+admin:
+  status-header: "<white>=== BetterWarden status ==="
+  status-server: "<gray>Server: {0}"
+  status-mode: "<gray>Mode: HOST (single server, no proxy)"
+  status-storage: "<gray>Storage: {0}"
+  status-login-gate: "<gray>Login gate fail-open: {0}"
+  status-db-ok: "<green>Database: OK ({0} punishment template(s))"
+  status-db-unreachable: "<red>Database: UNREACHABLE - {0}"
+  reload-ok: "<green>config.yml re-read successfully."
+  reload-note: "<gray>Note: storage/port/Flyway settings only take effect on a full restart."
+  reload-failed: "<red>config.yml failed to parse: {0}"
+  debug-written: "<gray>Debug report written to plugins/BetterWarden/debug/{0}"
+  debug-write-failed: "<red>Could not write debug report: {0}"
+  unknown-type: "<red>Unknown punishment type: {0}"
+  template-created: "<green>Template #{0} created ({1}, {2}{3})."
+  template-removed: "<green>Template #{0} removed."
+  template-not-found: "<red>No template found for #{0}"
+  template-list-empty: "<gray>No punishment templates configured."
+  template-list-header: "<white>Punishment templates:"
+  template-list-line: "<gray>#{0} {1} [{2}] {3}"
+  escalation-added: "<green>Escalation rung added: {0} offence #{1} -> {2} ({3})"
+  escalation-list-empty: "<gray>No escalation ladder defined for group '{0}'."
+  escalation-list-header: "<white>Escalation ladder for '{0}':"
+  escalation-list-line: "<gray>Offence #{0} -> {1} ({2})"
