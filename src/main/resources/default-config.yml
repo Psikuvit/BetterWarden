@@ -1,0 +1,25 @@
+# BetterWarden configuration.
+
+warden:
+  config-version: 1
+
+  server-name: "My Server"
+
+  storage:
+    # sqlite | mysql (mysql not wired up yet)
+    type: sqlite
+    mysql:
+      host: localhost
+      port: 3306
+      database: warden
+      username: warden
+      password: ""
+
+  panel:
+    port: 8095
+
+  login-gate:
+    fail-open: true
+
+  alt-detection:
+    ban-evasion-auto-action: false

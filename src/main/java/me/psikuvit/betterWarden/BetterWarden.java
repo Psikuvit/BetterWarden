@@ -1,11 +1,14 @@
 package me.psikuvit.betterWarden;
 
 import me.psikuvit.betterWarden.core.WardenSpringApp;
+import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.springframework.boot.Banner;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.DefaultResourceLoader;
+
+import java.io.File;
 
 public final class BetterWarden extends JavaPlugin {
 
@@ -15,6 +18,17 @@ public final class BetterWarden extends JavaPlugin {
     public void onEnable() {
         // Needed so Spring's autoconfiguration scanning can see the plugin jar's resources.
         Thread.currentThread().setContextClassLoader(getClassLoader());
+
+        try {
+            File configFile = ConfigBootstrap.ensureConfigFile(getDataFolder(),
+                    () -> getResource("default-config.yml"));
+            ConfigBootstrap.ensureIpSalt(configFile);
+            ConfigBootstrap.applyToSystemProperties(configFile, getDataFolder());
+        } catch (Exception e) {
+            getLogger().severe("Could not load config.yml: " + e);
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
         getLogger().info("Booting embedded Spring context...");
         long start = System.currentTimeMillis();
