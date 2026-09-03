@@ -14,10 +14,18 @@ import me.psikuvit.betterWarden.core.model.PunishmentType;
 import me.psikuvit.betterWarden.core.service.EscalationService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 
@@ -29,13 +37,15 @@ public final class WardenAdminCommands {
 
     private static final String PERMISSION = "warden.admin";
 
+    private final JavaPlugin plugin;
     private final PunishmentTemplateService templates;
     private final EscalationService escalationService;
     private final CoreConfig config;
     private final File configFile;
 
-    private WardenAdminCommands(PunishmentTemplateService templates, EscalationService escalationService,
+    private WardenAdminCommands(JavaPlugin plugin, PunishmentTemplateService templates, EscalationService escalationService,
                                  CoreConfig config, File configFile) {
+        this.plugin = plugin;
         this.templates = templates;
         this.escalationService = escalationService;
         this.config = config;
@@ -44,7 +54,7 @@ public final class WardenAdminCommands {
 
     public static void register(JavaPlugin plugin, PunishmentTemplateService templates, EscalationService escalationService,
                                  CoreConfig config, File configFile) {
-        WardenAdminCommands commands = new WardenAdminCommands(templates, escalationService, config, configFile);
+        WardenAdminCommands commands = new WardenAdminCommands(plugin, templates, escalationService, config, configFile);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(
@@ -77,6 +87,8 @@ public final class WardenAdminCommands {
                                     .executes(commands::executeStatus))
                             .then(literal("reload")
                                     .executes(commands::executeReload))
+                            .then(literal("debug")
+                                    .executes(commands::executeDebug))
                             .build(),
                     "BetterWarden admin commands");
         });
@@ -108,6 +120,54 @@ public final class WardenAdminCommands {
             sender.sendMessage("config.yml failed to parse: " + e.getMessage());
         }
         return Command.SINGLE_SUCCESS;
+    }
+
+    /** No paste-service upload - writes a local file under the plugin's data folder and reports the path. */
+    private int executeDebug(CommandContext<CommandSourceStack> ctx) {
+        CommandSender sender = ctx.getSource().getSender();
+
+        StringBuilder report = new StringBuilder();
+        report.append("BetterWarden debug report\n");
+        report.append("Generated: ").append(Instant.now()).append('\n');
+        report.append("Plugin version: ").append(plugin.getDescription().getVersion()).append('\n');
+        report.append("Server: ").append(Bukkit.getVersion()).append('\n');
+        report.append("Bukkit API: ").append(Bukkit.getBukkitVersion()).append('\n');
+        report.append("Java: ").append(System.getProperty("java.version")).append('\n');
+        report.append("OS: ").append(System.getProperty("os.name")).append(' ').append(System.getProperty("os.arch")).append('\n');
+        report.append("Storage type: ").append(config.getStorage().getType()).append('\n');
+        report.append("Login gate fail-open: ").append(config.getLoginGate().isFailOpen()).append('\n');
+        report.append("Config hash (SHA-256): ").append(configHash()).append('\n');
+        try {
+            int count = templates.list().size();
+            report.append("Database: OK (").append(count).append(" punishment template(s))\n");
+        } catch (Exception e) {
+            report.append("Database: UNREACHABLE - ").append(e.getMessage()).append('\n');
+        }
+
+        File debugDir = new File(plugin.getDataFolder(), "debug");
+        String filename = "debug-" + DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(java.time.LocalDateTime.now()) + ".txt";
+        try {
+            if (!debugDir.exists() && !debugDir.mkdirs()) {
+                throw new IOException("Could not create " + debugDir);
+            }
+            File outFile = new File(debugDir, filename);
+            Files.writeString(outFile.toPath(), report, StandardCharsets.UTF_8);
+            sender.sendMessage("Debug report written to plugins/BetterWarden/debug/" + filename);
+        } catch (IOException e) {
+            sender.sendMessage("Could not write debug report: " + e.getMessage());
+            sender.sendMessage(report.toString());
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private String configHash() {
+        try {
+            byte[] bytes = Files.readAllBytes(configFile.toPath());
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(bytes);
+            return HexFormat.of().formatHex(digest);
+        } catch (Exception e) {
+            return "unavailable (" + e.getMessage() + ")";
+        }
     }
 
     private int executeAdd(CommandContext<CommandSourceStack> ctx) {
