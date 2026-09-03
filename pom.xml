@@ -131,6 +131,10 @@
             <id>papermc-repo</id>
             <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
+        <repository>
+            <id>placeholderapi</id>
+            <url>https://repo.helpch.at/releases/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -169,6 +173,22 @@
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-community-dialects</artifactId>
             <version>7.4.0.Final</version>
+        </dependency>
+
+        <!-- Soft-depends: never on the classpath unless the actual plugin is installed on
+             the server, so every reference to these types is guarded by a presence check
+             before first use (see hook/) - otherwise a missing plugin means NoClassDefFoundError. -->
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.6</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+            <version>5.5</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

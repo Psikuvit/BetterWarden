@@ -14,6 +14,8 @@ import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
+import me.psikuvit.betterWarden.hook.LuckPermsHook;
+import me.psikuvit.betterWarden.hook.PlaceholderApiHook;
 import me.psikuvit.betterWarden.listener.BanGateListener;
 import me.psikuvit.betterWarden.listener.MuteCommandBlockListener;
 import me.psikuvit.betterWarden.listener.MuteGateListener;
@@ -89,6 +91,21 @@ public final class BetterWarden extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new MuteCommandBlockListener(punishmentService), this);
         getServer().getPluginManager().registerEvents(new PlayerTrackingListener(playerTracking), this);
         getServer().getPluginManager().registerEvents(new SessionListener(playerTracking), this);
+
+        registerHooks(punishmentService);
+    }
+
+    /** Soft-depends: each hook type is only ever loaded by the JVM once its plugin is confirmed present. */
+    private void registerHooks(PunishmentService punishmentService) {
+        LuckPermsHook luckPermsHook = null;
+        if (getServer().getPluginManager().isPluginEnabled("LuckPerms")) {
+            luckPermsHook = new LuckPermsHook();
+            getLogger().info("LuckPerms detected - staff rank lookups enabled.");
+        }
+        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            new PlaceholderApiHook(punishmentService, luckPermsHook).register();
+            getLogger().info("PlaceholderAPI detected - %warden_...% placeholders registered.");
+        }
     }
 
     @Override
