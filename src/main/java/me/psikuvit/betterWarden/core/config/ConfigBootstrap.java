@@ -111,6 +111,13 @@ public final class ConfigBootstrap {
         return created;
     }
 
+    /** Re-parses config.yml to confirm it's still valid YAML. Does not re-bind Spring beans - datasource/port changes still need a restart. */
+    public static void validate(File configFile) throws IOException {
+        try (InputStream in = new FileInputStream(configFile)) {
+            new Yaml().load(in);
+        }
+    }
+
     private static Map<String, Object> asMap(Object o) {
         return o == null ? Map.of() : (Map<String, Object>) o;
     }

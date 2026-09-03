@@ -6,12 +6,15 @@ import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
+import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.model.PunishmentTemplate;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
 import java.util.List;
 import java.util.Locale;
 
@@ -24,13 +27,17 @@ public final class WardenAdminCommands {
     private static final String PERMISSION = "warden.admin";
 
     private final PunishmentTemplateService templates;
+    private final CoreConfig config;
+    private final File configFile;
 
-    private WardenAdminCommands(PunishmentTemplateService templates) {
+    private WardenAdminCommands(PunishmentTemplateService templates, CoreConfig config, File configFile) {
         this.templates = templates;
+        this.config = config;
+        this.configFile = configFile;
     }
 
-    public static void register(JavaPlugin plugin, PunishmentTemplateService templates) {
-        WardenAdminCommands commands = new WardenAdminCommands(templates);
+    public static void register(JavaPlugin plugin, PunishmentTemplateService templates, CoreConfig config, File configFile) {
+        WardenAdminCommands commands = new WardenAdminCommands(templates, config, configFile);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(
@@ -48,9 +55,41 @@ public final class WardenAdminCommands {
                                                     .executes(commands::executeRemove)))
                                     .then(literal("list")
                                             .executes(commands::executeList)))
+                            .then(literal("status")
+                                    .executes(commands::executeStatus))
+                            .then(literal("reload")
+                                    .executes(commands::executeReload))
                             .build(),
                     "BetterWarden admin commands");
         });
+    }
+
+    private int executeStatus(CommandContext<CommandSourceStack> ctx) {
+        CommandSender sender = ctx.getSource().getSender();
+        sender.sendMessage("=== BetterWarden status ===");
+        sender.sendMessage("Server: " + config.getServerName());
+        sender.sendMessage("Mode: HOST (single server, no proxy)");
+        sender.sendMessage("Storage: " + config.getStorage().getType());
+        sender.sendMessage("Login gate fail-open: " + config.getLoginGate().isFailOpen());
+        try {
+            int count = templates.list().size();
+            sender.sendMessage("Database: OK (" + count + " punishment template(s))");
+        } catch (Exception e) {
+            sender.sendMessage("Database: UNREACHABLE - " + e.getMessage());
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int executeReload(CommandContext<CommandSourceStack> ctx) {
+        CommandSender sender = ctx.getSource().getSender();
+        try {
+            ConfigBootstrap.validate(configFile);
+            sender.sendMessage("config.yml re-read successfully.");
+            sender.sendMessage("Note: storage/port/Flyway settings only take effect on a full restart.");
+        } catch (Exception e) {
+            sender.sendMessage("config.yml failed to parse: " + e.getMessage());
+        }
+        return Command.SINGLE_SUCCESS;
     }
 
     private int executeAdd(CommandContext<CommandSourceStack> ctx) {

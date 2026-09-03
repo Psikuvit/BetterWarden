@@ -6,6 +6,7 @@ import me.psikuvit.betterWarden.command.PunishmentCommands;
 import me.psikuvit.betterWarden.command.WardenAdminCommands;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
+import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
 import me.psikuvit.betterWarden.core.service.IpHashingService;
 import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
@@ -30,6 +31,7 @@ import java.io.File;
 public final class BetterWarden extends JavaPlugin {
 
     private ConfigurableApplicationContext springContext;
+    private File configFile;
 
     @Override
     public void onEnable() {
@@ -37,7 +39,7 @@ public final class BetterWarden extends JavaPlugin {
         Thread.currentThread().setContextClassLoader(getClassLoader());
 
         try {
-            File configFile = ConfigBootstrap.ensureConfigFile(getDataFolder(),
+            configFile = ConfigBootstrap.ensureConfigFile(getDataFolder(),
                     () -> getResource("default-config.yml"));
             ConfigBootstrap.ensureIpSalt(configFile);
             ConfigBootstrap.applyToSystemProperties(configFile, getDataFolder());
@@ -74,10 +76,11 @@ public final class BetterWarden extends JavaPlugin {
         IpHashingService ipHashing = springContext.getBean(IpHashingService.class);
         PunishmentTemplateService templates = springContext.getBean(PunishmentTemplateService.class);
         AltDetectionService altDetection = springContext.getBean(AltDetectionService.class);
+        CoreConfig coreConfig = springContext.getBean(CoreConfig.class);
 
         PunishmentCommands.register(this, punishmentService, templates);
         InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking);
-        WardenAdminCommands.register(this, templates);
+        WardenAdminCommands.register(this, templates, coreConfig, configFile);
 
         getServer().getPluginManager().registerEvents(new BanGateListener(punishmentService, ipHashing), this);
         getServer().getPluginManager().registerEvents(new MuteGateListener(punishmentService), this);
