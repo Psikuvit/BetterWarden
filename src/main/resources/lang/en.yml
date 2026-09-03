@@ -91,3 +91,18 @@ report:
   detail-location: "<gray>Location: {0}"
   detail-chat-header: "<gray>Recent chat:"
   detail-chat-empty: "<gray>(no recent chat captured)"
+
+ticket:
+  opened: "<green>Ticket #{0} opened: {1}"
+  list-empty: "<gray>No tickets match that filter."
+  list-header: "<white>Tickets:"
+  list-line: "<gray>#{0} [{1}/{2}] <white>{3}</white> (opened by {4})"
+  not-found: "<red>No ticket #{0}"
+  replied: "<green>Reply added to ticket #{0}."
+  assigned: "<green>Ticket #{0} assigned to you."
+  closed: "<green>Ticket #{0} closed."
+  view-header: "<white>=== Ticket #{0}: {1} ==="
+  view-status: "<gray>Status: {0} | Priority: {1} | Assignee: {2}"
+  view-none: "none"
+  view-message: "<gray>[{0}] {1}{2}: {3}"
+  view-internal-tag: " (internal)"

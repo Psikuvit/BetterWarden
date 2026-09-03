@@ -4,6 +4,7 @@ import me.psikuvit.betterWarden.bridge.PaperBridge;
 import me.psikuvit.betterWarden.command.InfoCommands;
 import me.psikuvit.betterWarden.command.PunishmentCommands;
 import me.psikuvit.betterWarden.command.ReportCommands;
+import me.psikuvit.betterWarden.command.TicketCommands;
 import me.psikuvit.betterWarden.command.WardenAdminCommands;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
@@ -18,6 +19,7 @@ import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.core.service.ReportService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
+import me.psikuvit.betterWarden.core.service.TicketService;
 import me.psikuvit.betterWarden.hook.LuckPermsHook;
 import me.psikuvit.betterWarden.hook.PlaceholderApiHook;
 import me.psikuvit.betterWarden.listener.BanGateListener;
@@ -94,6 +96,8 @@ public final class BetterWarden extends JavaPlugin {
         InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking, lang);
         WardenAdminCommands.register(this, templates, escalationService, coreConfig, configFile, lang);
         ReportCommands.register(this, reportService, lang);
+        TicketService ticketService = springContext.getBean(TicketService.class);
+        TicketCommands.register(this, ticketService, lang);
 
         getServer().getPluginManager().registerEvents(new BanGateListener(punishmentService, ipHashing, lang), this);
         getServer().getPluginManager().registerEvents(new MuteGateListener(punishmentService, lang), this);
