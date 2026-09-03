@@ -11,6 +11,7 @@ import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
 import me.psikuvit.betterWarden.core.service.ChatHistoryService;
+import me.psikuvit.betterWarden.core.service.ChatInputService;
 import me.psikuvit.betterWarden.core.service.EscalationService;
 import me.psikuvit.betterWarden.core.service.IpHashingService;
 import me.psikuvit.betterWarden.core.service.LangService;
@@ -25,6 +26,7 @@ import me.psikuvit.betterWarden.hook.LuckPermsHook;
 import me.psikuvit.betterWarden.hook.PlaceholderApiHook;
 import me.psikuvit.betterWarden.listener.BanGateListener;
 import me.psikuvit.betterWarden.listener.ChatCaptureListener;
+import me.psikuvit.betterWarden.listener.ChatInputListener;
 import me.psikuvit.betterWarden.listener.MuteCommandBlockListener;
 import me.psikuvit.betterWarden.listener.MuteGateListener;
 import me.psikuvit.betterWarden.listener.PlayerTrackingListener;
@@ -60,6 +62,8 @@ public final class BetterWarden extends JavaPlugin {
             return;
         }
 
+        PaperScheduler scheduler = new PaperScheduler(this);
+
         getLogger().info("Booting embedded Spring context...");
         long start = System.currentTimeMillis();
         try {
@@ -69,7 +73,7 @@ public final class BetterWarden extends JavaPlugin {
                     .initializers(context -> {
                         if (context instanceof GenericApplicationContext gac) {
                             gac.getBeanFactory().registerSingleton("platformBridge",
-                                    new PaperBridge(new PaperScheduler(this)));
+                                    new PaperBridge(scheduler));
                         }
                     })
                     .run();
@@ -107,6 +111,8 @@ public final class BetterWarden extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new SessionListener(playerTracking), this);
         getServer().getPluginManager().registerEvents(new ChatCaptureListener(chatHistory), this);
         getServer().getPluginManager().registerEvents(new MenuListener(), this);
+        ChatInputService chatInput = springContext.getBean(ChatInputService.class);
+        getServer().getPluginManager().registerEvents(new ChatInputListener(chatInput, scheduler), this);
 
         registerHooks(punishmentService);
     }
