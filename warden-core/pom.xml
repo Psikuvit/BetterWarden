@@ -54,6 +54,14 @@
             <version>12.4.0</version>
         </dependency>
         <dependency>
+            <!-- flyway-core alone doesn't know MySQL's dialect - found this the hard way by
+                 actually booting against a real MySQL container: "Unsupported Database: MySQL 8.4".
+                 Same version-pinning reasoning as flyway-database-nc-sqlite above. -->
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+            <version>12.4.0</version>
+        </dependency>
+        <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-community-dialects</artifactId>
             <version>7.4.0.Final</version>
