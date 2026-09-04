@@ -5,6 +5,7 @@ import me.psikuvit.betterWarden.core.event.PunishmentChangedEvent;
 import me.psikuvit.betterWarden.core.model.ActorType;
 import me.psikuvit.betterWarden.core.model.AuditLogEntry;
 import me.psikuvit.betterWarden.core.model.Escalation;
+import me.psikuvit.betterWarden.core.model.Player;
 import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.model.PunishmentRevoke;
 import me.psikuvit.betterWarden.core.model.PunishmentTemplate;
@@ -129,6 +130,15 @@ public class PunishmentService {
 
     public Optional<Punishment> activeIpBan(String ipHash) {
         return cache.activeIpBan(ipHash);
+    }
+
+    /** Console-issued punishments have a null staffUuid; a resolved name falls back to the raw UUID if it's not in players (e.g. wiped/never joined). */
+    public String resolveStaffName(Punishment punishment) {
+        String staffUuid = punishment.getStaffUuid();
+        if (staffUuid == null) {
+            return "Console";
+        }
+        return playerTracking.find(UUID.fromString(staffUuid)).map(Player::getLastName).orElse(staffUuid);
     }
 
     public List<Punishment> history(UUID uuid, int limit) {

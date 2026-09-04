@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -72,9 +73,28 @@ public final class ConfigBootstrap {
         }
     }
 
-    /** Generates and persists warden.security.ip-salt into config.yml on first run, if it isn't set already. */
+    /**
+     * Reads warden.mode before Spring boots, so a backend can skip booting its own HOST core
+     * entirely when it's explicitly configured as a proxy CLIENT (see PLAN.md Stage 3 - CLIENT
+     * mode itself, the REST/WS client, isn't built yet; this only decides whether HOST boots).
+     */
+    public static String readMode(File configFile) throws IOException {
+        Map<String, Object> root;
+        try (InputStream in = new FileInputStream(configFile)) {
+            root = new Yaml().load(in);
+        }
+        Map<String, Object> warden = asMap(root.get("warden"));
+        return String.valueOf(warden.getOrDefault("mode", "HOST")).toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * Generates and persists warden.security.ip-salt and warden.security.node-token into
+     * config.yml on first run, for whichever of the two isn't already set. node-token is the
+     * shared secret this node presents in the Stage 3 proxy handshake (docs/spec, CoreHandshake) -
+     * no real per-node auth yet, see PLAN.md.
+     */
     @SuppressWarnings("unchecked")
-    public static void ensureIpSalt(File configFile) throws IOException {
+    public static void ensureSecuritySecrets(File configFile) throws IOException {
         Map<String, Object> root;
         try (InputStream in = new FileInputStream(configFile)) {
             Object loaded = new Yaml().load(in);
@@ -83,20 +103,29 @@ public final class ConfigBootstrap {
         Map<String, Object> warden = getOrCreateMap(root, "warden");
         Map<String, Object> security = getOrCreateMap(warden, "security");
 
-        Object existing = security.get("ip-salt");
-        if (existing instanceof String s && !s.isBlank()) {
+        boolean changed = false;
+        changed |= ensureRandomSecret(security, "ip-salt");
+        changed |= ensureRandomSecret(security, "node-token");
+        if (!changed) {
             return;
         }
-
-        byte[] randomBytes = new byte[32];
-        new SecureRandom().nextBytes(randomBytes);
-        security.put("ip-salt", HexFormat.of().formatHex(randomBytes));
 
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         try (Writer writer = new FileWriter(configFile, StandardCharsets.UTF_8)) {
             new Yaml(options).dump(root, writer);
         }
+    }
+
+    private static boolean ensureRandomSecret(Map<String, Object> security, String key) {
+        Object existing = security.get(key);
+        if (existing instanceof String s && !s.isBlank()) {
+            return false;
+        }
+        byte[] randomBytes = new byte[32];
+        new SecureRandom().nextBytes(randomBytes);
+        security.put(key, HexFormat.of().formatHex(randomBytes));
+        return true;
     }
 
     @SuppressWarnings("unchecked")

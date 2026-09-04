@@ -8,12 +8,15 @@ public class CoreConfig {
 
     private int configVersion = 1;
     private String serverName = "My Server";
+    /** HOST (default) boots a local core; CLIENT skips it - see ConfigBootstrap.readMode. */
+    private String mode = "HOST";
     private Storage storage = new Storage();
     private Panel panel = new Panel();
     private LoginGate loginGate = new LoginGate();
     private AltDetection altDetection = new AltDetection();
     private Security security = new Security();
     private Maintenance maintenance = new Maintenance();
+    private Node node = new Node();
 
     public int getConfigVersion() {
         return configVersion;
@@ -29,6 +32,14 @@ public class CoreConfig {
 
     public void setServerName(String serverName) {
         this.serverName = serverName;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
     }
 
     public Storage getStorage() {
@@ -77,6 +88,14 @@ public class CoreConfig {
 
     public void setMaintenance(Maintenance maintenance) {
         this.maintenance = maintenance;
+    }
+
+    public Node getNode() {
+        return node;
+    }
+
+    public void setNode(Node node) {
+        this.node = node;
     }
 
     public static class Storage {
@@ -186,6 +205,7 @@ public class CoreConfig {
 
     public static class Security {
         private String ipSalt = "";
+        private String nodeToken = "";
 
         public String getIpSalt() {
             return ipSalt;
@@ -193,6 +213,27 @@ public class CoreConfig {
 
         public void setIpSalt(String ipSalt) {
             this.ipSalt = ipSalt;
+        }
+
+        public String getNodeToken() {
+            return nodeToken;
+        }
+
+        public void setNodeToken(String nodeToken) {
+            this.nodeToken = nodeToken;
+        }
+    }
+
+    /** Proxy-side only for now (Stage 3 handshake) - meaningless on a HOST-mode Paper server. */
+    public static class Node {
+        private String advertiseHost = "localhost";
+
+        public String getAdvertiseHost() {
+            return advertiseHost;
+        }
+
+        public void setAdvertiseHost(String advertiseHost) {
+            this.advertiseHost = advertiseHost;
         }
     }
 
