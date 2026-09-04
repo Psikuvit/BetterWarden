@@ -19,7 +19,7 @@ punish:
   until: "Until {0}"
 
 gate:
-  banned: "<red>You are banned.\n<gray>Reason: {0}\n<gray>Duration: {1}"
+  banned: "<red>You are banned.\n<gray>Reason: {0}\n<gray>Banned by: {1}\n<gray>Duration: {2}\n<gray>Punishment ID: #{3}"
   muted-chat: "<red>You are muted: <gray>{0}"
   muted-command: "<red>You are muted: <gray>{0}"
 
@@ -71,6 +71,7 @@ admin:
   escalation-list-empty: "<gray>No escalation ladder defined for group '{0}'."
   escalation-list-header: "<white>Escalation ladder for '{0}':"
   escalation-list-line: "<gray>Offence #{0} -> {1} ({2})"
+  panel-url: "<gray>Panel: <white>{0}</white> (Stage 5 - not built yet, this is just the configured address)"
 
 report:
   submitted: "<green>Report #{0} submitted for <white>{1}</white>. Thank you."
