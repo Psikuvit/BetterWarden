@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 import './AppLayout.css'
 
 // Matches docs/spec/04-PANEL.txt §1's private route list. Routes not built yet still show in
@@ -19,6 +20,14 @@ const NAV_ITEMS = [
 ]
 
 export default function AppLayout() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  async function onLogout() {
+    await logout()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
@@ -34,12 +43,17 @@ export default function AppLayout() {
             </NavLink>
           ))}
         </nav>
+        <div className="app-user">
+          <div>
+            <div className="app-user-name">{user?.username}</div>
+            <div className="app-user-role muted">{user?.role}</div>
+          </div>
+          <button className="logout-button" onClick={onLogout}>
+            Log out
+          </button>
+        </div>
       </aside>
       <div className="app-main">
-        <div className="no-auth-banner">
-          No login yet - this panel has no authentication. Anyone who can reach this port can
-          see and use everything below. See PLAN.md Stage 5 auth.
-        </div>
         <main className="app-content">
           <Outlet />
         </main>
