@@ -27,3 +27,9 @@ warden:
   maintenance:
     report-auto-close-hours: 72
     ticket-auto-close-hours: 168
+
+  node:
+    # Host backend servers should use to reach this proxy's embedded core
+    # over HTTP (Stage 3 handshake). Change this if backends run on a
+    # different machine than the proxy.
+    advertise-host: localhost
