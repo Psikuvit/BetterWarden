@@ -8,8 +8,13 @@ interface ActivityChartProps {
 // for the panel in general (overridden by using React at all, per explicit request), but pulling
 // in a whole charting dependency for one bar chart still isn't worth it.
 export default function ActivityChart({ data }: ActivityChartProps) {
-  if (data.length === 0) {
-    return <p className="muted">No data.</p>
+  // The 30-day range always has all days present (zero-filled), so data.length === 0 never
+  // actually happens - checking the total instead. Found by actually looking at the rendered
+  // chart with a fresh empty database: every bar at 0 height renders as nothing at all, not an
+  // empty chart with a visible baseline, so a real "no data" message reads much better here.
+  const total = data.reduce((sum, d) => sum + d.count, 0)
+  if (data.length === 0 || total === 0) {
+    return <p className="muted">No punishments issued in the last 30 days.</p>
   }
   const max = Math.max(1, ...data.map((d) => d.count))
   const width = 600
