@@ -1,4 +1,4 @@
-package me.psikuvit.betterWarden.client;
+package me.psikuvit.betterWarden.core.client;
 
 import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.model.PunishmentType;

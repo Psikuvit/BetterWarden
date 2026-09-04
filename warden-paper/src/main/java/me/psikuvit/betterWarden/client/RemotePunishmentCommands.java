@@ -9,6 +9,8 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.command.Msg;
 import me.psikuvit.betterWarden.command.TargetResolver;
+import me.psikuvit.betterWarden.core.client.RemoteCoreClient;
+import me.psikuvit.betterWarden.core.client.RemotePunishmentCache;
 import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
 import me.psikuvit.betterWarden.core.network.dto.IssuePunishmentRequest;

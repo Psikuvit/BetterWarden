@@ -1,10 +1,10 @@
 package me.psikuvit.betterWarden;
 
 import me.psikuvit.betterWarden.bridge.PaperBridge;
-import me.psikuvit.betterWarden.client.RemoteCoreClient;
-import me.psikuvit.betterWarden.client.RemotePunishmentCache;
 import me.psikuvit.betterWarden.client.RemotePunishmentCommands;
-import me.psikuvit.betterWarden.client.WriteJournal;
+import me.psikuvit.betterWarden.core.client.RemoteCoreClient;
+import me.psikuvit.betterWarden.core.client.RemotePunishmentCache;
+import me.psikuvit.betterWarden.core.client.WriteJournal;
 import me.psikuvit.betterWarden.command.InfoCommands;
 import me.psikuvit.betterWarden.command.PunishmentCommands;
 import me.psikuvit.betterWarden.command.ReportCommands;
