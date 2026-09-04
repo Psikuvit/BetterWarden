@@ -11,10 +11,13 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.model.PunishmentTemplate;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
+import me.psikuvit.betterWarden.core.repo.PlayerRepository;
 import me.psikuvit.betterWarden.core.service.LangService;
+import me.psikuvit.betterWarden.core.service.MojangApiService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.core.util.DurationParser;
+import me.psikuvit.betterWarden.scheduler.WardenScheduler;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -47,15 +50,23 @@ public final class PunishmentCommands {
     private final PunishmentService service;
     private final PunishmentTemplateService templates;
     private final LangService lang;
+    private final PlayerRepository players;
+    private final MojangApiService mojangApi;
+    private final WardenScheduler scheduler;
 
-    private PunishmentCommands(PunishmentService service, PunishmentTemplateService templates, LangService lang) {
+    private PunishmentCommands(PunishmentService service, PunishmentTemplateService templates, LangService lang,
+                                PlayerRepository players, MojangApiService mojangApi, WardenScheduler scheduler) {
         this.service = service;
         this.templates = templates;
         this.lang = lang;
+        this.players = players;
+        this.mojangApi = mojangApi;
+        this.scheduler = scheduler;
     }
 
-    public static void register(JavaPlugin plugin, PunishmentService service, PunishmentTemplateService templates, LangService lang) {
-        PunishmentCommands commands = new PunishmentCommands(service, templates, lang);
+    public static void register(JavaPlugin plugin, PunishmentService service, PunishmentTemplateService templates, LangService lang,
+                                 PlayerRepository players, MojangApiService mojangApi, WardenScheduler scheduler) {
+        PunishmentCommands commands = new PunishmentCommands(service, templates, lang, players, mojangApi, scheduler);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(commands.punishFixed("ban", "warden.ban", PunishmentType.BAN, false).build(), "Ban a player");
@@ -117,32 +128,34 @@ public final class PunishmentCommands {
 
     private int executeFixed(CommandContext<CommandSourceStack> ctx, PunishmentType type, boolean silent) {
         CommandSender sender = ctx.getSource().getSender();
-        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
-        if (target.isEmpty()) {
-            Msg.send(sender, lang.get("common.player-not-found"));
-            return 0;
-        }
-        if (PunishmentType.MUTE_TYPES.contains(type) && service.activeMute(target.get().uuid()).isPresent()) {
-            Msg.send(sender, lang.get("punish.already-muted", target.get().name()));
-            return 0;
-        }
-        UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
         String rawReason = reasonOrDefault(ctx);
+        TargetResolver.resolve(players, mojangApi, StringArgumentType.getString(ctx, "player")).thenAccept(target ->
+                Async.runOnMain(scheduler, () -> {
+                    if (target.isEmpty()) {
+                        Msg.send(sender, lang.get("common.player-not-found"));
+                        return;
+                    }
+                    if (PunishmentType.MUTE_TYPES.contains(type) && service.activeMute(target.get().uuid()).isPresent()) {
+                        Msg.send(sender, lang.get("punish.already-muted", target.get().name()));
+                        return;
+                    }
+                    UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
 
-        Punishment punishment;
-        if (rawReason.startsWith("#")) {
-            Optional<PunishmentTemplate> template = templates.find(rawReason.substring(1));
-            if (template.isEmpty()) {
-                Msg.send(sender, lang.get("punish.unknown-template", rawReason));
-                return 0;
-            }
-            // The template (and its escalation ladder, if any) decides the final type/duration -
-            // that's the whole point of an escalating template, so it can outrank the command typed.
-            punishment = service.issueFromTemplate(target.get().uuid(), target.get().name(), template.get(), staffUuid, silent, null);
-        } else {
-            punishment = service.issue(target.get().uuid(), target.get().name(), type, rawReason, staffUuid, null, silent, null);
-        }
-        Msg.send(sender, lang.get("punish.issued", punishment.getType(), target.get().name(), punishment.getId(), punishment.getReason()));
+                    Punishment punishment;
+                    if (rawReason.startsWith("#")) {
+                        Optional<PunishmentTemplate> template = templates.find(rawReason.substring(1));
+                        if (template.isEmpty()) {
+                            Msg.send(sender, lang.get("punish.unknown-template", rawReason));
+                            return;
+                        }
+                        // The template (and its escalation ladder, if any) decides the final type/duration -
+                        // that's the whole point of an escalating template, so it can outrank the command typed.
+                        punishment = service.issueFromTemplate(target.get().uuid(), target.get().name(), template.get(), staffUuid, silent, null);
+                    } else {
+                        punishment = service.issue(target.get().uuid(), target.get().name(), type, rawReason, staffUuid, null, silent, null);
+                    }
+                    Msg.send(sender, lang.get("punish.issued", punishment.getType(), target.get().name(), punishment.getId(), punishment.getReason()));
+                }));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -156,67 +169,73 @@ public final class PunishmentCommands {
             Msg.send(sender, lang.get("punish.invalid-duration", durationStr));
             return 0;
         }
-        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
-        if (target.isEmpty()) {
-            Msg.send(sender, lang.get("common.player-not-found"));
-            return 0;
-        }
-        if (PunishmentType.MUTE_TYPES.contains(type) && service.activeMute(target.get().uuid()).isPresent()) {
-            Msg.send(sender, lang.get("punish.already-muted", target.get().name()));
-            return 0;
-        }
-        UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
         String rawReason = reasonOrDefault(ctx);
+        TargetResolver.resolve(players, mojangApi, StringArgumentType.getString(ctx, "player")).thenAccept(target ->
+                Async.runOnMain(scheduler, () -> {
+                    if (target.isEmpty()) {
+                        Msg.send(sender, lang.get("common.player-not-found"));
+                        return;
+                    }
+                    if (PunishmentType.MUTE_TYPES.contains(type) && service.activeMute(target.get().uuid()).isPresent()) {
+                        Msg.send(sender, lang.get("punish.already-muted", target.get().name()));
+                        return;
+                    }
+                    UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
 
-        Punishment punishment;
-        if (rawReason.startsWith("#")) {
-            Optional<PunishmentTemplate> template = templates.find(rawReason.substring(1));
-            if (template.isEmpty()) {
-                Msg.send(sender, lang.get("punish.unknown-template", rawReason));
-                return 0;
-            }
-            punishment = service.issueFromTemplate(target.get().uuid(), target.get().name(), template.get(), staffUuid, silent, null);
-        } else {
-            punishment = service.issue(target.get().uuid(), target.get().name(), type, rawReason, staffUuid, duration, silent, null);
-        }
-        Msg.send(sender, lang.get("punish.issued", punishment.getType(), target.get().name(), punishment.getId(), punishment.getReason()));
+                    Punishment punishment;
+                    if (rawReason.startsWith("#")) {
+                        Optional<PunishmentTemplate> template = templates.find(rawReason.substring(1));
+                        if (template.isEmpty()) {
+                            Msg.send(sender, lang.get("punish.unknown-template", rawReason));
+                            return;
+                        }
+                        punishment = service.issueFromTemplate(target.get().uuid(), target.get().name(), template.get(), staffUuid, silent, null);
+                    } else {
+                        punishment = service.issue(target.get().uuid(), target.get().name(), type, rawReason, staffUuid, duration, silent, null);
+                    }
+                    Msg.send(sender, lang.get("punish.issued", punishment.getType(), target.get().name(), punishment.getId(), punishment.getReason()));
+                }));
         return Command.SINGLE_SUCCESS;
     }
 
     private int executeIpBan(CommandContext<CommandSourceStack> ctx) {
         CommandSender sender = ctx.getSource().getSender();
-        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
-        if (target.isEmpty()) {
-            Msg.send(sender, lang.get("common.player-not-found"));
-            return 0;
-        }
         String reason = reasonOrDefault(ctx);
-        UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
-        Punishment punishment = service.issueIpBan(target.get().uuid(), target.get().name(), reason, staffUuid, null, false, null);
-        Msg.send(sender, lang.get("punish.ipban-issued", target.get().name(), punishment.getId(), reason));
+        TargetResolver.resolve(players, mojangApi, StringArgumentType.getString(ctx, "player")).thenAccept(target ->
+                Async.runOnMain(scheduler, () -> {
+                    if (target.isEmpty()) {
+                        Msg.send(sender, lang.get("common.player-not-found"));
+                        return;
+                    }
+                    UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
+                    Punishment punishment = service.issueIpBan(target.get().uuid(), target.get().name(), reason, staffUuid, null, false, null);
+                    Msg.send(sender, lang.get("punish.ipban-issued", target.get().name(), punishment.getId(), reason));
+                }));
         return Command.SINGLE_SUCCESS;
     }
 
     private int executeUnpunish(CommandContext<CommandSourceStack> ctx, Set<PunishmentType> types) {
         CommandSender sender = ctx.getSource().getSender();
-        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
-        if (target.isEmpty()) {
-            Msg.send(sender, lang.get("common.player-not-found"));
-            return 0;
-        }
-        List<Punishment> active = service.activePunishments(target.get().uuid()).stream()
-                .filter(p -> types.contains(p.getType()))
-                .toList();
-        if (active.isEmpty()) {
-            Msg.send(sender, lang.get("punish.no-active-punishment", target.get().name()));
-            return 0;
-        }
         String reason = reasonOrDefault(ctx);
-        UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
-        for (Punishment p : active) {
-            service.revoke(p.getId(), staffUuid, reason);
-        }
-        Msg.send(sender, lang.get("punish.revoked", active.size(), target.get().name()));
+        TargetResolver.resolve(players, mojangApi, StringArgumentType.getString(ctx, "player")).thenAccept(target ->
+                Async.runOnMain(scheduler, () -> {
+                    if (target.isEmpty()) {
+                        Msg.send(sender, lang.get("common.player-not-found"));
+                        return;
+                    }
+                    List<Punishment> active = service.activePunishments(target.get().uuid()).stream()
+                            .filter(p -> types.contains(p.getType()))
+                            .toList();
+                    if (active.isEmpty()) {
+                        Msg.send(sender, lang.get("punish.no-active-punishment", target.get().name()));
+                        return;
+                    }
+                    UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
+                    for (Punishment p : active) {
+                        service.revoke(p.getId(), staffUuid, reason);
+                    }
+                    Msg.send(sender, lang.get("punish.revoked", active.size(), target.get().name()));
+                }));
         return Command.SINGLE_SUCCESS;
     }
 

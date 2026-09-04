@@ -17,12 +17,14 @@ import me.psikuvit.betterWarden.core.network.CoreHandshake;
 import me.psikuvit.betterWarden.network.CoreHandshakeListener;
 import me.psikuvit.betterWarden.core.panel.setup.SetupCodeService;
 import me.psikuvit.betterWarden.core.repo.PanelUserRepository;
+import me.psikuvit.betterWarden.core.repo.PlayerRepository;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
 import me.psikuvit.betterWarden.core.service.ChatHistoryService;
 import me.psikuvit.betterWarden.core.service.ChatInputService;
 import me.psikuvit.betterWarden.core.service.EscalationService;
 import me.psikuvit.betterWarden.core.service.IpHashingService;
 import me.psikuvit.betterWarden.core.service.LangService;
+import me.psikuvit.betterWarden.core.service.MojangApiService;
 import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
@@ -123,9 +125,12 @@ public final class BetterWarden extends JavaPlugin {
         ReportService reportService = springContext.getBean(ReportService.class);
         ChatHistoryService chatHistory = springContext.getBean(ChatHistoryService.class);
         ChatInputService chatInput = springContext.getBean(ChatInputService.class);
+        PlayerRepository playerRepository = springContext.getBean(PlayerRepository.class);
+        MojangApiService mojangApi = springContext.getBean(MojangApiService.class);
 
-        PunishmentCommands.register(this, punishmentService, templates, lang);
-        InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking, templates, chatInput, lang);
+        PunishmentCommands.register(this, punishmentService, templates, lang, playerRepository, mojangApi, scheduler);
+        InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking, templates, chatInput, lang,
+                playerRepository, mojangApi, scheduler);
         WardenAdminCommands.register(this, templates, escalationService, coreConfig, configFile, lang,
                 springContext.getBean(SetupCodeService.class), springContext.getBean(PanelUserRepository.class));
         ReportCommands.register(this, reportService, playerTracking, lang);
@@ -179,7 +184,8 @@ public final class BetterWarden extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new BanGateListener(cache, ipHashing, lang), this);
         getServer().getPluginManager().registerEvents(new MuteGateListener(cache, lang), this);
         getServer().getPluginManager().registerEvents(new MuteCommandBlockListener(cache, lang), this);
-        RemotePunishmentCommands.register(this, remoteClient, cache, lang);
+        // No Spring context in CLIENT mode - MojangApiService is a plain POJO like LangService above.
+        RemotePunishmentCommands.register(this, remoteClient, cache, lang, new MojangApiService(), new PaperScheduler(this));
     }
 
     /** Soft-depends: each hook type is only ever loaded by the JVM once its plugin is confirmed present. */

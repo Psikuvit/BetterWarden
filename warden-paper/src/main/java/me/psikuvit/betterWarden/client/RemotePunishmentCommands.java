@@ -7,6 +7,7 @@ import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import me.psikuvit.betterWarden.command.Async;
 import me.psikuvit.betterWarden.command.Msg;
 import me.psikuvit.betterWarden.command.TargetResolver;
 import me.psikuvit.betterWarden.core.client.RemoteCoreClient;
@@ -17,7 +18,9 @@ import me.psikuvit.betterWarden.core.network.dto.IssuePunishmentRequest;
 import me.psikuvit.betterWarden.core.network.dto.PunishmentDto;
 import me.psikuvit.betterWarden.core.network.dto.RevokeRequest;
 import me.psikuvit.betterWarden.core.service.LangService;
+import me.psikuvit.betterWarden.core.service.MojangApiService;
 import me.psikuvit.betterWarden.core.util.DurationParser;
+import me.psikuvit.betterWarden.scheduler.WardenScheduler;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -41,15 +44,21 @@ public final class RemotePunishmentCommands {
     private final RemoteCoreClient client;
     private final RemotePunishmentCache cache;
     private final LangService lang;
+    private final MojangApiService mojangApi;
+    private final WardenScheduler scheduler;
 
-    private RemotePunishmentCommands(RemoteCoreClient client, RemotePunishmentCache cache, LangService lang) {
+    private RemotePunishmentCommands(RemoteCoreClient client, RemotePunishmentCache cache, LangService lang,
+                                      MojangApiService mojangApi, WardenScheduler scheduler) {
         this.client = client;
         this.cache = cache;
         this.lang = lang;
+        this.mojangApi = mojangApi;
+        this.scheduler = scheduler;
     }
 
-    public static void register(JavaPlugin plugin, RemoteCoreClient client, RemotePunishmentCache cache, LangService lang) {
-        RemotePunishmentCommands commands = new RemotePunishmentCommands(client, cache, lang);
+    public static void register(JavaPlugin plugin, RemoteCoreClient client, RemotePunishmentCache cache, LangService lang,
+                                 MojangApiService mojangApi, WardenScheduler scheduler) {
+        RemotePunishmentCommands commands = new RemotePunishmentCommands(client, cache, lang, mojangApi, scheduler);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(commands.fixed("ban", "warden.ban", PunishmentType.BAN).build(), "Ban a player");
@@ -110,49 +119,52 @@ public final class RemotePunishmentCommands {
 
     private int issue(CommandContext<CommandSourceStack> ctx, PunishmentType type, Duration duration) {
         CommandSender sender = ctx.getSource().getSender();
-        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
-        if (target.isEmpty()) {
-            Msg.send(sender, lang.get("common.player-not-found"));
-            return 0;
-        }
-        if (PunishmentType.MUTE_TYPES.contains(type) && cache.activeMute(target.get().uuid()).isPresent()) {
-            Msg.send(sender, lang.get("punish.already-muted", target.get().name()));
-            return 0;
-        }
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
         String reason = reasonOrDefault(ctx);
-
-        IssuePunishmentRequest req = new IssuePunishmentRequest(target.get().uuid().toString(), target.get().name(),
-                type, reason, staffUuid == null ? null : staffUuid.toString(),
-                duration == null ? null : duration.toSeconds(), false);
-        Optional<PunishmentDto> result = client.issue(req);
-        if (result.isPresent()) {
-            PunishmentDto dto = result.get();
-            Msg.send(sender, lang.get("punish.issued", dto.type(), target.get().name(), dto.id(), dto.reason()));
-        } else {
-            Msg.send(sender, lang.get("punish.queued", type, target.get().name()));
-        }
+        TargetResolver.resolve(mojangApi, StringArgumentType.getString(ctx, "player")).thenAccept(target ->
+                Async.runOnMain(scheduler, () -> {
+                    if (target.isEmpty()) {
+                        Msg.send(sender, lang.get("common.player-not-found"));
+                        return;
+                    }
+                    if (PunishmentType.MUTE_TYPES.contains(type) && cache.activeMute(target.get().uuid()).isPresent()) {
+                        Msg.send(sender, lang.get("punish.already-muted", target.get().name()));
+                        return;
+                    }
+                    IssuePunishmentRequest req = new IssuePunishmentRequest(target.get().uuid().toString(), target.get().name(),
+                            type, reason, staffUuid == null ? null : staffUuid.toString(),
+                            duration == null ? null : duration.toSeconds(), false);
+                    Optional<PunishmentDto> result = client.issue(req);
+                    if (result.isPresent()) {
+                        PunishmentDto dto = result.get();
+                        Msg.send(sender, lang.get("punish.issued", dto.type(), target.get().name(), dto.id(), dto.reason()));
+                    } else {
+                        Msg.send(sender, lang.get("punish.queued", type, target.get().name()));
+                    }
+                }));
         return Command.SINGLE_SUCCESS;
     }
 
     private int executeUnpunish(CommandContext<CommandSourceStack> ctx, Set<PunishmentType> types) {
         CommandSender sender = ctx.getSource().getSender();
-        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
-        if (target.isEmpty()) {
-            Msg.send(sender, lang.get("common.player-not-found"));
-            return 0;
-        }
-        Optional<Punishment> active = types.contains(PunishmentType.MUTE)
-                ? cache.activeMute(target.get().uuid())
-                : cache.activeBan(target.get().uuid());
-        if (active.isEmpty() || !types.contains(active.get().getType())) {
-            Msg.send(sender, lang.get("punish.no-active-punishment", target.get().name()));
-            return 0;
-        }
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
         String reason = reasonOrDefault(ctx);
-        boolean ok = client.revoke(active.get().getId(), new RevokeRequest(staffUuid == null ? null : staffUuid.toString(), reason));
-        Msg.send(sender, lang.get(ok ? "punish.revoked" : "punish.revoke-queued", 1, target.get().name()));
+        TargetResolver.resolve(mojangApi, StringArgumentType.getString(ctx, "player")).thenAccept(target ->
+                Async.runOnMain(scheduler, () -> {
+                    if (target.isEmpty()) {
+                        Msg.send(sender, lang.get("common.player-not-found"));
+                        return;
+                    }
+                    Optional<Punishment> active = types.contains(PunishmentType.MUTE)
+                            ? cache.activeMute(target.get().uuid())
+                            : cache.activeBan(target.get().uuid());
+                    if (active.isEmpty() || !types.contains(active.get().getType())) {
+                        Msg.send(sender, lang.get("punish.no-active-punishment", target.get().name()));
+                        return;
+                    }
+                    boolean ok = client.revoke(active.get().getId(), new RevokeRequest(staffUuid == null ? null : staffUuid.toString(), reason));
+                    Msg.send(sender, lang.get(ok ? "punish.revoked" : "punish.revoke-queued", 1, target.get().name()));
+                }));
         return Command.SINGLE_SUCCESS;
     }
 

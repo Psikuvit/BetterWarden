@@ -72,7 +72,8 @@ public final class ReportCommands {
 
     private int executeReport(CommandContext<CommandSourceStack> ctx) {
         CommandSender sender = ctx.getSource().getSender();
-        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
+        // Cached-only, no Mojang fallback - a report needs the target to actually be present (location capture below).
+        Optional<TargetResolver.Target> target = TargetResolver.resolveCached(StringArgumentType.getString(ctx, "player"));
         if (target.isEmpty()) {
             Msg.send(sender, lang.get("common.player-not-found"));
             return 0;

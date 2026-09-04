@@ -8,15 +8,18 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.core.model.Punishment;
+import me.psikuvit.betterWarden.core.repo.PlayerRepository;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
 import me.psikuvit.betterWarden.core.service.ChatInputService;
 import me.psikuvit.betterWarden.core.service.LangService;
+import me.psikuvit.betterWarden.core.service.MojangApiService;
 import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
 import me.psikuvit.betterWarden.gui.PlayerLookupMenu;
 import me.psikuvit.betterWarden.gui.PunishmentHistoryMenu;
+import me.psikuvit.betterWarden.scheduler.WardenScheduler;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -37,10 +40,14 @@ public final class InfoCommands {
     private final PunishmentTemplateService templates;
     private final ChatInputService chatInput;
     private final LangService lang;
+    private final PlayerRepository players;
+    private final MojangApiService mojangApi;
+    private final WardenScheduler scheduler;
 
     private InfoCommands(PunishmentService punishmentService, StaffNoteService noteService,
                           AltDetectionService altDetectionService, PlayerTrackingService playerTracking,
-                          PunishmentTemplateService templates, ChatInputService chatInput, LangService lang) {
+                          PunishmentTemplateService templates, ChatInputService chatInput, LangService lang,
+                          PlayerRepository players, MojangApiService mojangApi, WardenScheduler scheduler) {
         this.punishmentService = punishmentService;
         this.noteService = noteService;
         this.altDetectionService = altDetectionService;
@@ -48,13 +55,17 @@ public final class InfoCommands {
         this.templates = templates;
         this.chatInput = chatInput;
         this.lang = lang;
+        this.players = players;
+        this.mojangApi = mojangApi;
+        this.scheduler = scheduler;
     }
 
     public static void register(JavaPlugin plugin, PunishmentService punishmentService, StaffNoteService noteService,
                                  AltDetectionService altDetectionService, PlayerTrackingService playerTracking,
-                                 PunishmentTemplateService templates, ChatInputService chatInput, LangService lang) {
+                                 PunishmentTemplateService templates, ChatInputService chatInput, LangService lang,
+                                 PlayerRepository players, MojangApiService mojangApi, WardenScheduler scheduler) {
         InfoCommands commands = new InfoCommands(punishmentService, noteService, altDetectionService, playerTracking,
-                templates, chatInput, lang);
+                templates, chatInput, lang, players, mojangApi, scheduler);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(commands.history().build(), "View a player's punishment history");
@@ -91,20 +102,22 @@ public final class InfoCommands {
 
     private int executeAlts(CommandContext<CommandSourceStack> ctx) {
         CommandSender sender = ctx.getSource().getSender();
-        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
-        if (target.isEmpty()) {
-            Msg.send(sender, lang.get("common.player-not-found"));
-            return 0;
-        }
-        List<me.psikuvit.betterWarden.core.model.Player> alts = altDetectionService.findAlts(target.get().uuid());
-        if (alts.isEmpty()) {
-            Msg.send(sender, lang.get("alts.none", target.get().name()));
-            return Command.SINGLE_SUCCESS;
-        }
-        Msg.send(sender, lang.get("alts.header", target.get().name()));
-        for (me.psikuvit.betterWarden.core.model.Player alt : alts) {
-            Msg.send(sender, lang.get("alts.line", alt.getLastName()));
-        }
+        TargetResolver.resolve(players, mojangApi, StringArgumentType.getString(ctx, "player")).thenAccept(target ->
+                Async.runOnMain(scheduler, () -> {
+                    if (target.isEmpty()) {
+                        Msg.send(sender, lang.get("common.player-not-found"));
+                        return;
+                    }
+                    List<me.psikuvit.betterWarden.core.model.Player> alts = altDetectionService.findAlts(target.get().uuid());
+                    if (alts.isEmpty()) {
+                        Msg.send(sender, lang.get("alts.none", target.get().name()));
+                        return;
+                    }
+                    Msg.send(sender, lang.get("alts.header", target.get().name()));
+                    for (me.psikuvit.betterWarden.core.model.Player alt : alts) {
+                        Msg.send(sender, lang.get("alts.line", alt.getLastName()));
+                    }
+                }));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -118,71 +131,77 @@ public final class InfoCommands {
 
     private int executeLookup(CommandContext<CommandSourceStack> ctx) {
         CommandSender sender = ctx.getSource().getSender();
-        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
-        if (target.isEmpty()) {
-            Msg.send(sender, lang.get("common.player-not-found"));
-            return 0;
-        }
-        UUID uuid = target.get().uuid();
+        TargetResolver.resolve(players, mojangApi, StringArgumentType.getString(ctx, "player")).thenAccept(target ->
+                Async.runOnMain(scheduler, () -> {
+                    if (target.isEmpty()) {
+                        Msg.send(sender, lang.get("common.player-not-found"));
+                        return;
+                    }
+                    UUID uuid = target.get().uuid();
 
-        // Spec says /lookup opens a GUI - do that for players; console has no inventory, so it keeps the chat form.
-        if (sender instanceof Player staff) {
-            new PlayerLookupMenu(uuid, target.get().name(), punishmentService, noteService, altDetectionService,
-                    playerTracking, templates, chatInput).open(staff);
-            return Command.SINGLE_SUCCESS;
-        }
+                    // Spec says /lookup opens a GUI - do that for players; console has no inventory, so it keeps the chat form.
+                    if (sender instanceof Player staff) {
+                        new PlayerLookupMenu(uuid, target.get().name(), punishmentService, noteService, altDetectionService,
+                                playerTracking, templates, chatInput).open(staff);
+                        return;
+                    }
 
-        Optional<me.psikuvit.betterWarden.core.model.Player> player = playerTracking.find(uuid);
+                    Optional<me.psikuvit.betterWarden.core.model.Player> player = playerTracking.find(uuid);
 
-        Msg.send(sender, lang.get("lookup.header", target.get().name()));
-        player.ifPresentOrElse(p -> {
-            Msg.send(sender, lang.get("lookup.first-seen", p.getFirstSeen()));
-            Msg.send(sender, lang.get("lookup.last-seen", p.getLastSeen()));
-        }, () -> Msg.send(sender, lang.get("lookup.no-profile")));
-        Msg.send(sender, lang.get("lookup.active-punishments", punishmentService.activePunishments(uuid).size()));
-        Msg.send(sender, lang.get("lookup.staff-notes", noteService.list(uuid).size()));
-        Msg.send(sender, lang.get("lookup.known-alts", altDetectionService.findAlts(uuid).size()));
+                    Msg.send(sender, lang.get("lookup.header", target.get().name()));
+                    player.ifPresentOrElse(p -> {
+                        Msg.send(sender, lang.get("lookup.first-seen", p.getFirstSeen()));
+                        Msg.send(sender, lang.get("lookup.last-seen", p.getLastSeen()));
+                    }, () -> Msg.send(sender, lang.get("lookup.no-profile")));
+                    Msg.send(sender, lang.get("lookup.active-punishments", punishmentService.activePunishments(uuid).size()));
+                    Msg.send(sender, lang.get("lookup.staff-notes", noteService.list(uuid).size()));
+                    Msg.send(sender, lang.get("lookup.known-alts", altDetectionService.findAlts(uuid).size()));
+                }));
         return Command.SINGLE_SUCCESS;
     }
 
     private int executeHistory(CommandContext<CommandSourceStack> ctx) {
         CommandSender sender = ctx.getSource().getSender();
-        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
-        if (target.isEmpty()) {
-            Msg.send(sender, lang.get("common.player-not-found"));
-            return 0;
-        }
+        TargetResolver.resolve(players, mojangApi, StringArgumentType.getString(ctx, "player")).thenAccept(target ->
+                Async.runOnMain(scheduler, () -> {
+                    if (target.isEmpty()) {
+                        Msg.send(sender, lang.get("common.player-not-found"));
+                        return;
+                    }
 
-        // Spec says /history opens a GUI too - same player/console split as /lookup.
-        if (sender instanceof Player staff) {
-            new PunishmentHistoryMenu(target.get().uuid(), target.get().name(), punishmentService).open(staff);
-            return Command.SINGLE_SUCCESS;
-        }
+                    // Spec says /history opens a GUI too - same player/console split as /lookup.
+                    if (sender instanceof Player staff) {
+                        new PunishmentHistoryMenu(target.get().uuid(), target.get().name(), punishmentService).open(staff);
+                        return;
+                    }
 
-        List<Punishment> history = punishmentService.history(target.get().uuid(), 10);
-        if (history.isEmpty()) {
-            Msg.send(sender, lang.get("history.empty", target.get().name()));
-            return Command.SINGLE_SUCCESS;
-        }
-        Msg.send(sender, lang.get("history.header", target.get().name()));
-        for (Punishment p : history) {
-            String status = p.isActive() ? lang.get("history.status-active") : lang.get("history.status-inactive");
-            Msg.send(sender, lang.get("history.line", p.getId(), p.getType(), status, p.getReason()));
-        }
+                    List<Punishment> history = punishmentService.history(target.get().uuid(), 10);
+                    if (history.isEmpty()) {
+                        Msg.send(sender, lang.get("history.empty", target.get().name()));
+                        return;
+                    }
+                    Msg.send(sender, lang.get("history.header", target.get().name()));
+                    for (Punishment p : history) {
+                        String status = p.isActive() ? lang.get("history.status-active") : lang.get("history.status-inactive");
+                        Msg.send(sender, lang.get("history.line", p.getId(), p.getType(), status, p.getReason()));
+                    }
+                }));
         return Command.SINGLE_SUCCESS;
     }
 
     private int executeNote(CommandContext<CommandSourceStack> ctx) {
         CommandSender sender = ctx.getSource().getSender();
-        Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
-        if (target.isEmpty()) {
-            Msg.send(sender, lang.get("common.player-not-found"));
-            return 0;
-        }
         String text = StringArgumentType.getString(ctx, "text");
-        UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
-        noteService.add(target.get().uuid(), staffUuid, text);
-        Msg.send(sender, lang.get("note.added", target.get().name()));
+        TargetResolver.resolve(players, mojangApi, StringArgumentType.getString(ctx, "player")).thenAccept(target ->
+                Async.runOnMain(scheduler, () -> {
+                    if (target.isEmpty()) {
+                        Msg.send(sender, lang.get("common.player-not-found"));
+                        return;
+                    }
+                    UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
+                    noteService.add(target.get().uuid(), staffUuid, text);
+                    Msg.send(sender, lang.get("note.added", target.get().name()));
+                }));
         return Command.SINGLE_SUCCESS;
     }
 }
