@@ -39,6 +39,11 @@
             <version>3.53.4.0</version>
         </dependency>
         <dependency>
+            <!-- version managed by the spring-boot-dependencies BOM -->
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+        </dependency>
+        <dependency>
             <!-- pinned to 12.4.0 to match the flyway-core version the Boot BOM manages; 13.x throws AbstractMethodError against it -->
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-nc-sqlite</artifactId>

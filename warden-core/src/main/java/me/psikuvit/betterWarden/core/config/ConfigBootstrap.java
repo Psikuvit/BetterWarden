@@ -61,8 +61,28 @@ public final class ConfigBootstrap {
                 System.setProperty("spring.jpa.database-platform", "org.hibernate.community.dialect.SQLiteDialect");
                 System.setProperty("spring.flyway.locations", "classpath:db/migration/sqlite");
             }
-            case "mysql" -> throw new UnsupportedOperationException(
-                    "storage.type: mysql is not wired up yet. Set storage.type back to sqlite.");
+            case "mysql" -> {
+                Map<String, Object> mysql = asMap(storage.get("mysql"));
+                // Env vars win when present - avoids config.yml and a container-orchestrator's
+                // own secret (docker-compose .env, Kubernetes Secret, ...) disagreeing on the
+                // password. config.yml's value is still the fallback for a non-containerized run.
+                String host = env("WARDEN_DB_HOST", String.valueOf(mysql.getOrDefault("host", "localhost")));
+                String mysqlPort = env("WARDEN_DB_PORT", String.valueOf(mysql.getOrDefault("port", 3306)));
+                String database = env("WARDEN_DB_NAME", String.valueOf(mysql.getOrDefault("database", "warden")));
+                String username = env("WARDEN_DB_USER", String.valueOf(mysql.getOrDefault("username", "warden")));
+                String password = env("WARDEN_DB_PASSWORD", String.valueOf(mysql.getOrDefault("password", "")));
+
+                String url = "jdbc:mysql://" + host + ":" + mysqlPort + "/" + database
+                        + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+                System.setProperty("spring.datasource.url", url);
+                System.setProperty("spring.datasource.username", username);
+                System.setProperty("spring.datasource.password", password);
+                System.setProperty("spring.datasource.driver-class-name", "com.mysql.cj.jdbc.Driver");
+                System.setProperty("spring.flyway.locations", "classpath:db/migration/mysql");
+                // No spring.jpa.database-platform override here - Hibernate auto-detects the
+                // right MySQLDialect from the JDBC connection, unlike SQLite which needs the
+                // community-dialects override above since Hibernate has no first-party support.
+            }
             default -> throw new IllegalStateException("Unknown storage.type '" + type + "' in config.yml");
         }
 
@@ -165,5 +185,10 @@ public final class ConfigBootstrap {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> asMap(Object o) {
         return o == null ? Map.of() : (Map<String, Object>) o;
+    }
+
+    private static String env(String name, String fallback) {
+        String value = System.getenv(name);
+        return value == null || value.isBlank() ? fallback : value;
     }
 }
