@@ -67,6 +67,10 @@ public final class GlobalPunishmentCommands {
                     source.sendRichMessage(lang.get("common.player-not-found"));
                     return;
                 }
+                if (PunishmentType.MUTE_TYPES.contains(type) && punishmentService.activeMute(target.get().uuid()).isPresent()) {
+                    source.sendRichMessage(lang.get("punish.already-muted", target.get().name()));
+                    return;
+                }
                 String reason = args.length > 1
                         ? String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length))
                         : lang.get("punish.no-reason");

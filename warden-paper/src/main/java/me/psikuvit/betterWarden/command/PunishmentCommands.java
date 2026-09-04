@@ -122,6 +122,10 @@ public final class PunishmentCommands {
             Msg.send(sender, lang.get("common.player-not-found"));
             return 0;
         }
+        if (PunishmentType.MUTE_TYPES.contains(type) && service.activeMute(target.get().uuid()).isPresent()) {
+            Msg.send(sender, lang.get("punish.already-muted", target.get().name()));
+            return 0;
+        }
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
         String rawReason = reasonOrDefault(ctx);
 
@@ -155,6 +159,10 @@ public final class PunishmentCommands {
         Optional<TargetResolver.Target> target = TargetResolver.resolve(StringArgumentType.getString(ctx, "player"));
         if (target.isEmpty()) {
             Msg.send(sender, lang.get("common.player-not-found"));
+            return 0;
+        }
+        if (PunishmentType.MUTE_TYPES.contains(type) && service.activeMute(target.get().uuid()).isPresent()) {
+            Msg.send(sender, lang.get("punish.already-muted", target.get().name()));
             return 0;
         }
         UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;

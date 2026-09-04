@@ -11,6 +11,7 @@ punish:
   invalid-duration: "<red>Invalid duration: {0}"
   unknown-template: "<red>Unknown template: {0}"
   no-active-punishment: "<gray>{0} has no matching active punishment."
+  already-muted: "<red>{0} is already muted. Unmute them first if you want to change it."
   revoked: "<gray>Revoked {0} punishment(s) for <white>{1}</white>"
   kicked-message: "<red>You are banned.\n<gray>Reason: {0}\n<gray>Duration: {1}"
   muted-message: "<red>You have been muted: <gray>{0}"
