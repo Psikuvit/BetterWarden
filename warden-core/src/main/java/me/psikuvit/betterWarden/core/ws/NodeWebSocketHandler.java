@@ -43,6 +43,11 @@ public class NodeWebSocketHandler extends TextWebSocketHandler {
         log.info("Node disconnected: {} ({})", session.getId(), status);
     }
 
+    /** No per-node identity yet (see NodeAuthInterceptor) - just a live count, for /warden nodes. */
+    public int connectedCount() {
+        return sessions.size();
+    }
+
     private void broadcast(NodeEvent event) {
         String json;
         try {

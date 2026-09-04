@@ -21,6 +21,7 @@ import me.psikuvit.betterWarden.core.repo.PlayerRepository;
 import me.psikuvit.betterWarden.core.service.IpHashingService;
 import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
+import me.psikuvit.betterWarden.core.ws.NodeWebSocketHandler;
 import me.psikuvit.betterWarden.listener.ProxyLoginGateListener;
 import org.slf4j.Logger;
 import org.springframework.boot.Banner;
@@ -98,7 +99,7 @@ public final class WardenVelocityPlugin {
         CoreConfig config = springContext.getBean(CoreConfig.class);
 
         GlobalPunishmentCommands.register(server, springContext.getBean(PlayerRepository.class), punishmentService, lang);
-        WardenProxyCommands.register(server, config, lang);
+        WardenProxyCommands.register(server, config, lang, springContext.getBean(NodeWebSocketHandler.class));
 
         server.getEventManager().register(this, new ProxyLoginGateListener(
                 punishmentService, springContext.getBean(IpHashingService.class), config, lang, logger));
