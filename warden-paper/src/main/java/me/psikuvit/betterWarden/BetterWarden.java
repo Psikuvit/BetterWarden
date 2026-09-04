@@ -15,6 +15,8 @@ import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.network.CoreHandshake;
 import me.psikuvit.betterWarden.network.CoreHandshakeListener;
+import me.psikuvit.betterWarden.core.panel.setup.SetupCodeService;
+import me.psikuvit.betterWarden.core.repo.PanelUserRepository;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
 import me.psikuvit.betterWarden.core.service.ChatHistoryService;
 import me.psikuvit.betterWarden.core.service.ChatInputService;
@@ -124,7 +126,8 @@ public final class BetterWarden extends JavaPlugin {
 
         PunishmentCommands.register(this, punishmentService, templates, lang);
         InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking, templates, chatInput, lang);
-        WardenAdminCommands.register(this, templates, escalationService, coreConfig, configFile, lang);
+        WardenAdminCommands.register(this, templates, escalationService, coreConfig, configFile, lang,
+                springContext.getBean(SetupCodeService.class), springContext.getBean(PanelUserRepository.class));
         ReportCommands.register(this, reportService, playerTracking, lang);
         TicketService ticketService = springContext.getBean(TicketService.class);
         TicketCommands.register(this, ticketService, chatInput, lang);

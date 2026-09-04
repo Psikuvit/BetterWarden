@@ -21,6 +21,8 @@ import me.psikuvit.betterWarden.core.client.WriteJournal;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.network.CoreHandshake;
+import me.psikuvit.betterWarden.core.panel.setup.SetupCodeService;
+import me.psikuvit.betterWarden.core.repo.PanelUserRepository;
 import me.psikuvit.betterWarden.core.repo.PlayerRepository;
 import me.psikuvit.betterWarden.core.service.IpHashingService;
 import me.psikuvit.betterWarden.core.service.LangService;
@@ -113,11 +115,21 @@ public final class WardenVelocityPlugin {
         LangService lang = springContext.getBean(LangService.class);
         CoreConfig config = springContext.getBean(CoreConfig.class);
         NodeWebSocketHandler nodeHub = springContext.getBean(NodeWebSocketHandler.class);
+        SetupCodeService setupCodeService = springContext.getBean(SetupCodeService.class);
+        PanelUserRepository panelUsers = springContext.getBean(PanelUserRepository.class);
 
         GlobalPunishmentCommands.register(server, springContext.getBean(PlayerRepository.class), punishmentService, lang);
         WardenProxyCommands.register(server, lang,
                 () -> "http://" + config.getNode().getAdvertiseHost() + ":" + config.getPanel().getPort(),
-                () -> Optional.of(nodeHub.connectedCount()));
+                () -> Optional.of(nodeHub.connectedCount()),
+                () -> {
+                    if (panelUsers.count() > 0) {
+                        return lang.get("admin.setup-already-done");
+                    }
+                    return lang.get("admin.setup-code-header") + "\n"
+                            + lang.get("admin.setup-code-url", config.getPanel().getPort()) + "\n"
+                            + lang.get("admin.setup-code-value", setupCodeService.generate());
+                });
 
         server.getEventManager().register(this, new ProxyLoginGateListener(
                 punishmentService, springContext.getBean(IpHashingService.class), config, lang, logger));
@@ -163,7 +175,10 @@ public final class WardenVelocityPlugin {
         remoteClient.start();
 
         RemoteGlobalPunishmentCommands.register(server, remoteClient, cache, lang);
-        WardenProxyCommands.register(server, lang, () -> coreUrl, remoteClient::nodeCount);
+        // No local SetupCodeService in CLIENT mode - setup happens directly against whatever
+        // core this proxy points at, not through this process.
+        WardenProxyCommands.register(server, lang, () -> coreUrl, remoteClient::nodeCount,
+                () -> "<gray>Not available in CLIENT mode - use the setup wizard on the core this proxy connects to.");
         server.getEventManager().register(this, new ProxyLoginGateListener(cache, ipHashing, rawConfig, lang, logger));
 
         clientHandshakeToRelay = new CoreHandshake(coreUrl, nodeToken, VERSION, CoreHandshake.TIER_STANDALONE);

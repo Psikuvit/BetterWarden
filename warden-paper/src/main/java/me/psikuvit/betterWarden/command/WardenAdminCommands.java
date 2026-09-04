@@ -12,6 +12,8 @@ import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.model.Escalation;
 import me.psikuvit.betterWarden.core.model.PunishmentTemplate;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
+import me.psikuvit.betterWarden.core.panel.setup.SetupCodeService;
+import me.psikuvit.betterWarden.core.repo.PanelUserRepository;
 import me.psikuvit.betterWarden.core.service.EscalationService;
 import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
@@ -45,20 +47,27 @@ public final class WardenAdminCommands {
     private final CoreConfig config;
     private final File configFile;
     private final LangService lang;
+    private final SetupCodeService setupCodeService;
+    private final PanelUserRepository panelUsers;
 
     private WardenAdminCommands(JavaPlugin plugin, PunishmentTemplateService templates, EscalationService escalationService,
-                                 CoreConfig config, File configFile, LangService lang) {
+                                 CoreConfig config, File configFile, LangService lang,
+                                 SetupCodeService setupCodeService, PanelUserRepository panelUsers) {
         this.plugin = plugin;
         this.templates = templates;
         this.escalationService = escalationService;
         this.config = config;
         this.configFile = configFile;
         this.lang = lang;
+        this.setupCodeService = setupCodeService;
+        this.panelUsers = panelUsers;
     }
 
     public static void register(JavaPlugin plugin, PunishmentTemplateService templates, EscalationService escalationService,
-                                 CoreConfig config, File configFile, LangService lang) {
-        WardenAdminCommands commands = new WardenAdminCommands(plugin, templates, escalationService, config, configFile, lang);
+                                 CoreConfig config, File configFile, LangService lang,
+                                 SetupCodeService setupCodeService, PanelUserRepository panelUsers) {
+        WardenAdminCommands commands = new WardenAdminCommands(plugin, templates, escalationService, config, configFile, lang,
+                setupCodeService, panelUsers);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(
@@ -93,6 +102,8 @@ public final class WardenAdminCommands {
                                     .executes(commands::executeReload))
                             .then(literal("debug")
                                     .executes(commands::executeDebug))
+                            .then(literal("setup")
+                                    .executes(commands::executeSetup))
                             .build(),
                     "BetterWarden admin commands");
         });
@@ -161,6 +172,20 @@ public final class WardenAdminCommands {
             Msg.send(sender, lang.get("admin.debug-write-failed", e.getMessage()));
             sender.sendMessage(report.toString());
         }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** docs/spec/04-PANEL.txt SS2: "/warden setup in-game reissues the code." Only meaningful in HOST mode - CLIENT backends have no local panel/setup flow of their own. */
+    private int executeSetup(CommandContext<CommandSourceStack> ctx) {
+        CommandSender sender = ctx.getSource().getSender();
+        if (panelUsers.count() > 0) {
+            Msg.send(sender, lang.get("admin.setup-already-done"));
+            return Command.SINGLE_SUCCESS;
+        }
+        String code = setupCodeService.generate();
+        Msg.send(sender, lang.get("admin.setup-code-header"));
+        Msg.send(sender, lang.get("admin.setup-code-url", config.getPanel().getPort()));
+        Msg.send(sender, lang.get("admin.setup-code-value", code));
         return Command.SINGLE_SUCCESS;
     }
 

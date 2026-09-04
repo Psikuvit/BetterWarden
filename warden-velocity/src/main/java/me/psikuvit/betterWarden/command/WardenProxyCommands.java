@@ -21,7 +21,7 @@ public final class WardenProxyCommands {
     private static final String PERMISSION = "warden.admin";
 
     public static void register(ProxyServer server, LangService lang, Supplier<String> panelUrl,
-                                 Supplier<Optional<Integer>> nodeCount) {
+                                 Supplier<Optional<Integer>> nodeCount, Supplier<String> setupCode) {
         CommandManager manager = server.getCommandManager();
         manager.register(manager.metaBuilder("warden").plugin(WardenProxyCommands.class).build(), new SimpleCommand() {
             @Override
@@ -34,7 +34,7 @@ public final class WardenProxyCommands {
                 CommandSource source = invocation.source();
                 String[] args = invocation.arguments();
                 if (args.length == 0) {
-                    source.sendRichMessage("<gray>Usage: /warden <panel|nodes>");
+                    source.sendRichMessage("<gray>Usage: /warden <panel|nodes|setup>");
                     return;
                 }
                 switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -44,7 +44,8 @@ public final class WardenProxyCommands {
                     case "nodes" -> nodeCount.get().ifPresentOrElse(
                             count -> source.sendRichMessage(lang.get("admin.nodes-connected", count)),
                             () -> source.sendRichMessage("<red>Could not reach Core for the node count."));
-                    default -> source.sendRichMessage("<gray>Usage: /warden <panel|nodes>");
+                    case "setup" -> source.sendRichMessage(setupCode.get());
+                    default -> source.sendRichMessage("<gray>Usage: /warden <panel|nodes|setup>");
                 }
             }
         });

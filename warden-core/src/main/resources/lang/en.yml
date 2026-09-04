@@ -74,6 +74,10 @@ admin:
   escalation-list-empty: "<gray>No escalation ladder defined for group '{0}'."
   escalation-list-header: "<white>Escalation ladder for '{0}':"
   escalation-list-line: "<gray>Offence #{0} -> {1} ({2})"
+  setup-already-done: "<gray>Panel setup is already complete - log in at the panel instead of using a setup code."
+  setup-code-header: "<white>=== Panel setup ==="
+  setup-code-url: "<gray>Panel: <white>http://localhost:{0}"
+  setup-code-value: "<gray>Code: <white>{0}</white> <gray>(30 min, single use)"
   panel-url: "<gray>Panel: <white>{0}</white> (Stage 5 - not built yet, this is just the configured address)"
   nodes-connected: "<gray>{0} node(s) connected to this proxy's core."
 
