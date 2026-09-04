@@ -40,3 +40,22 @@ warden:
   maintenance:
     report-auto-close-hours: 72
     ticket-auto-close-hours: 168
+
+  chat-filter:
+    enabled: true
+    # Plain words are matched against a normalized form (lowercased, spacing/leetspeak/homoglyphs
+    # collapsed), so "f u c k" and "fuck" both hit a "fuck" entry. Prefix an entry with "regex:" to
+    # match a real regex against the raw message instead (e.g. "regex:\bfree\s*nitro\b") - regex
+    # rules skip normalization entirely, since normalizing would strip the pattern syntax itself.
+    # Empty by default - add your own, no built-in wordlist is shipped.
+    blocked-words: []
+    ad-detection: true
+    caps-threshold-percent: 70
+    caps-min-length: 10
+    spam-message-limit: 5
+    spam-window-seconds: 8
+    repeat-message-limit: 3
+    # Flagged/blocked hits within the window before an automatic mute.
+    auto-punish-threshold: 5
+    auto-punish-window-minutes: 10
+    auto-punish-duration-minutes: 30

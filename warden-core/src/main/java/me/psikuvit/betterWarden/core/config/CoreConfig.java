@@ -2,6 +2,9 @@ package me.psikuvit.betterWarden.core.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /** Typed, injectable view of config.yml's {@code warden.*} tree. */
 @ConfigurationProperties(prefix = "warden")
 public class CoreConfig {
@@ -17,6 +20,7 @@ public class CoreConfig {
     private Security security = new Security();
     private Maintenance maintenance = new Maintenance();
     private Node node = new Node();
+    private ChatFilter chatFilter = new ChatFilter();
 
     public int getConfigVersion() {
         return configVersion;
@@ -96,6 +100,14 @@ public class CoreConfig {
 
     public void setNode(Node node) {
         this.node = node;
+    }
+
+    public ChatFilter getChatFilter() {
+        return chatFilter;
+    }
+
+    public void setChatFilter(ChatFilter chatFilter) {
+        this.chatFilter = chatFilter;
     }
 
     public static class Storage {
@@ -275,6 +287,109 @@ public class CoreConfig {
 
         public void setTicketAutoCloseHours(int ticketAutoCloseHours) {
             this.ticketAutoCloseHours = ticketAutoCloseHours;
+        }
+    }
+
+    /** docs/spec/01-CORE.txt ChatFilterService. blockedWords entries are plain words matched against the normalized form by default, or a real regex against the raw message if prefixed "regex:" (see ChatFilterService). */
+    public static class ChatFilter {
+        private boolean enabled = true;
+        private List<String> blockedWords = new ArrayList<>();
+        private boolean adDetection = true;
+        private int capsThresholdPercent = 70;
+        private int capsMinLength = 10;
+        private int spamMessageLimit = 5;
+        private int spamWindowSeconds = 8;
+        private int repeatMessageLimit = 3;
+        private int autoPunishThreshold = 5;
+        private int autoPunishWindowMinutes = 10;
+        private int autoPunishDurationMinutes = 30;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public List<String> getBlockedWords() {
+            return blockedWords;
+        }
+
+        public void setBlockedWords(List<String> blockedWords) {
+            this.blockedWords = blockedWords;
+        }
+
+        public boolean isAdDetection() {
+            return adDetection;
+        }
+
+        public void setAdDetection(boolean adDetection) {
+            this.adDetection = adDetection;
+        }
+
+        public int getCapsThresholdPercent() {
+            return capsThresholdPercent;
+        }
+
+        public void setCapsThresholdPercent(int capsThresholdPercent) {
+            this.capsThresholdPercent = capsThresholdPercent;
+        }
+
+        public int getCapsMinLength() {
+            return capsMinLength;
+        }
+
+        public void setCapsMinLength(int capsMinLength) {
+            this.capsMinLength = capsMinLength;
+        }
+
+        public int getSpamMessageLimit() {
+            return spamMessageLimit;
+        }
+
+        public void setSpamMessageLimit(int spamMessageLimit) {
+            this.spamMessageLimit = spamMessageLimit;
+        }
+
+        public int getSpamWindowSeconds() {
+            return spamWindowSeconds;
+        }
+
+        public void setSpamWindowSeconds(int spamWindowSeconds) {
+            this.spamWindowSeconds = spamWindowSeconds;
+        }
+
+        public int getRepeatMessageLimit() {
+            return repeatMessageLimit;
+        }
+
+        public void setRepeatMessageLimit(int repeatMessageLimit) {
+            this.repeatMessageLimit = repeatMessageLimit;
+        }
+
+        public int getAutoPunishThreshold() {
+            return autoPunishThreshold;
+        }
+
+        public void setAutoPunishThreshold(int autoPunishThreshold) {
+            this.autoPunishThreshold = autoPunishThreshold;
+        }
+
+        public int getAutoPunishWindowMinutes() {
+            return autoPunishWindowMinutes;
+        }
+
+        public void setAutoPunishWindowMinutes(int autoPunishWindowMinutes) {
+            this.autoPunishWindowMinutes = autoPunishWindowMinutes;
+        }
+
+        public int getAutoPunishDurationMinutes() {
+            return autoPunishDurationMinutes;
+        }
+
+        public void setAutoPunishDurationMinutes(int autoPunishDurationMinutes) {
+            this.autoPunishDurationMinutes = autoPunishDurationMinutes;
         }
     }
 }

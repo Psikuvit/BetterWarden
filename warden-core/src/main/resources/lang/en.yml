@@ -115,3 +115,6 @@ ticket:
   view-none: "none"
   view-message: "<gray>[{0}] {1}{2}: {3}"
   view-internal-tag: " (internal)"
+
+chat-filter:
+  blocked: "<red>Your message was blocked by the chat filter."

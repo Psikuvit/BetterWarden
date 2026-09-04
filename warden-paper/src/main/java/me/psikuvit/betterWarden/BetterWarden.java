@@ -16,9 +16,11 @@ import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.network.CoreHandshake;
 import me.psikuvit.betterWarden.network.CoreHandshakeListener;
 import me.psikuvit.betterWarden.core.panel.setup.SetupCodeService;
+import me.psikuvit.betterWarden.core.platform.PlatformBridge;
 import me.psikuvit.betterWarden.core.repo.PanelUserRepository;
 import me.psikuvit.betterWarden.core.repo.PlayerRepository;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
+import me.psikuvit.betterWarden.core.service.ChatFilterService;
 import me.psikuvit.betterWarden.core.service.ChatHistoryService;
 import me.psikuvit.betterWarden.core.service.ChatInputService;
 import me.psikuvit.betterWarden.core.service.EscalationService;
@@ -36,6 +38,7 @@ import me.psikuvit.betterWarden.hook.LuckPermsHook;
 import me.psikuvit.betterWarden.hook.PlaceholderApiHook;
 import me.psikuvit.betterWarden.listener.BanGateListener;
 import me.psikuvit.betterWarden.listener.ChatCaptureListener;
+import me.psikuvit.betterWarden.listener.ChatFilterListener;
 import me.psikuvit.betterWarden.listener.ChatInputListener;
 import me.psikuvit.betterWarden.listener.MuteCommandBlockListener;
 import me.psikuvit.betterWarden.listener.MuteGateListener;
@@ -127,6 +130,8 @@ public final class BetterWarden extends JavaPlugin {
         ChatInputService chatInput = springContext.getBean(ChatInputService.class);
         PlayerRepository playerRepository = springContext.getBean(PlayerRepository.class);
         MojangApiService mojangApi = springContext.getBean(MojangApiService.class);
+        ChatFilterService chatFilter = springContext.getBean(ChatFilterService.class);
+        PlatformBridge platformBridge = springContext.getBean(PlatformBridge.class);
 
         PunishmentCommands.register(this, punishmentService, templates, lang, playerRepository, mojangApi, scheduler);
         InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking, templates, chatInput, lang,
@@ -143,6 +148,7 @@ public final class BetterWarden extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerTrackingListener(playerTracking), this);
         getServer().getPluginManager().registerEvents(new SessionListener(playerTracking), this);
         getServer().getPluginManager().registerEvents(new ChatCaptureListener(chatHistory), this);
+        getServer().getPluginManager().registerEvents(new ChatFilterListener(chatFilter, lang, scheduler, platformBridge), this);
         getServer().getPluginManager().registerEvents(new MenuListener(), this);
         getServer().getPluginManager().registerEvents(new ChatInputListener(chatInput, scheduler), this);
 
