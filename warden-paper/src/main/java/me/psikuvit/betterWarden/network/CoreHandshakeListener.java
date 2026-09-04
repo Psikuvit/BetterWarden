@@ -9,6 +9,7 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
@@ -16,11 +17,13 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Receives the {@code warden:core} handshake a Stage 3 proxy sends when a player first connects
- * to this backend. Caches it to disk - there's no CLIENT mode to switch into yet (see PLAN.md),
- * so this only ever warns, it never changes what this server actually does.
+ * to this backend, and caches it to disk. Only takes effect on the *next* boot (warden.mode:
+ * client) - BetterWarden.java already decided HOST vs CLIENT for this run before any player
+ * could have joined and triggered this.
  */
 public class CoreHandshakeListener implements PluginMessageListener {
 
@@ -45,9 +48,8 @@ public class CoreHandshakeListener implements PluginMessageListener {
             return;
         }
         persist(handshake);
-        plugin.getLogger().warning("Received a proxy core handshake (core=" + handshake.coreUrl()
-                + ") but CLIENT mode isn't implemented yet - this server is still running its own "
-                + "independent HOST core. Cached for when CLIENT mode ships (see PLAN.md Stage 3).");
+        plugin.getLogger().info("Received and cached a proxy core handshake (core=" + handshake.coreUrl()
+                + "). Set warden.mode: client and restart to use it.");
     }
 
     private void persist(CoreHandshake handshake) {
@@ -67,20 +69,31 @@ public class CoreHandshakeListener implements PluginMessageListener {
         }
     }
 
-    /** Logs a startup warning if a handshake was cached in a previous session - see class doc. */
-    @SuppressWarnings("unchecked")
+    /** Called on a HOST boot: tells the operator a proxy relationship is cached but unused, in case that's not intentional. */
     public static void warnIfCached(JavaPlugin plugin, File dataFolder) {
+        readCached(dataFolder).ifPresent(handshake -> plugin.getLogger().warning(
+                "A proxy core handshake is cached (core=" + handshake.coreUrl() + ") but warden.mode is "
+                        + "'host' - this server is running its own independent core. Set warden.mode: "
+                        + "client and restart if you meant to defer to that proxy's core instead."));
+    }
+
+    /** Read back on a CLIENT boot - see BetterWarden.java. */
+    @SuppressWarnings("unchecked")
+    public static Optional<CoreHandshake> readCached(File dataFolder) {
         File cacheFile = new File(dataFolder, "node-handshake.yml");
         if (!cacheFile.exists()) {
-            return;
+            return Optional.empty();
         }
-        try {
-            Map<String, Object> data = (Map<String, Object>) new Yaml().load(new java.io.FileInputStream(cacheFile));
-            Object coreUrl = data == null ? null : data.get("core-url");
-            plugin.getLogger().warning("A proxy core handshake is cached from a previous session (core=" + coreUrl
-                    + ") but CLIENT mode isn't implemented yet - running as an independent HOST core.");
+        try (FileInputStream in = new FileInputStream(cacheFile)) {
+            Map<String, Object> data = (Map<String, Object>) new Yaml().load(in);
+            if (data == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new CoreHandshake(
+                    String.valueOf(data.get("core-url")), String.valueOf(data.get("node-token")),
+                    String.valueOf(data.get("version")), String.valueOf(data.get("tier"))));
         } catch (Exception e) {
-            plugin.getLogger().warning("Could not read cached proxy handshake (" + cacheFile + "): " + e.getMessage());
+            return Optional.empty();
         }
     }
 }

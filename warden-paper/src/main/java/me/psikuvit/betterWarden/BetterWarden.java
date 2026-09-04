@@ -1,6 +1,10 @@
 package me.psikuvit.betterWarden;
 
 import me.psikuvit.betterWarden.bridge.PaperBridge;
+import me.psikuvit.betterWarden.client.RemoteCoreClient;
+import me.psikuvit.betterWarden.client.RemotePunishmentCache;
+import me.psikuvit.betterWarden.client.RemotePunishmentCommands;
+import me.psikuvit.betterWarden.client.WriteJournal;
 import me.psikuvit.betterWarden.command.InfoCommands;
 import me.psikuvit.betterWarden.command.PunishmentCommands;
 import me.psikuvit.betterWarden.command.ReportCommands;
@@ -46,6 +50,7 @@ import java.io.File;
 public final class BetterWarden extends JavaPlugin {
 
     private ConfigurableApplicationContext springContext;
+    private RemoteCoreClient remoteClient;
     private File configFile;
 
     @Override
@@ -77,13 +82,7 @@ public final class BetterWarden extends JavaPlugin {
             return;
         }
         if ("CLIENT".equals(mode)) {
-            // CLIENT mode's actual networking (REST/WS to a proxy's core) isn't built yet -
-            // see PLAN.md Stage 3. Refusing to boot a second, independent HOST core here is
-            // deliberate: it avoids the split-brain a silently-still-HOST backend would cause
-            // once a real CLIENT does exist. Until then this server has no punishment features.
-            getLogger().warning("warden.mode is 'client' - this server will NOT boot its own core. "
-                    + "CLIENT mode's proxy networking isn't implemented yet, so punishment "
-                    + "enforcement is disabled here until warden.mode is set back to 'host'.");
+            bootClientMode();
             return;
         }
 
@@ -142,6 +141,44 @@ public final class BetterWarden extends JavaPlugin {
         registerHooks(punishmentService);
     }
 
+    /**
+     * No local core at all - never boots Spring/JPA/SQLite. Just enough to talk to a proxy's
+     * core over REST/WS: config.yml is read raw for the IP salt, LangService is a plain POJO
+     * (no Spring needed), and PunishmentGateway lets the same gate listeners as HOST mode run
+     * against RemotePunishmentCache instead of a local PunishmentService.
+     */
+    private void bootClientMode() {
+        var handshake = CoreHandshakeListener.readCached(getDataFolder());
+        if (handshake.isEmpty()) {
+            getLogger().severe("warden.mode is 'client' but no proxy handshake is cached yet - "
+                    + "join once through the proxy first (so it can announce itself to this "
+                    + "server), or set warden.mode back to 'host'.");
+            return;
+        }
+        CoreHandshake h = handshake.get();
+        getLogger().info("CLIENT mode - connecting to Core at " + h.coreUrl() + "...");
+
+        LangService lang = new LangService();
+        CoreConfig rawConfig = new CoreConfig();
+        try {
+            rawConfig.getSecurity().setIpSalt(ConfigBootstrap.readIpSalt(configFile));
+        } catch (Exception e) {
+            getLogger().severe("Could not read warden.security.ip-salt from config.yml: " + e);
+            return;
+        }
+        IpHashingService ipHashing = new IpHashingService(rawConfig);
+
+        RemotePunishmentCache cache = new RemotePunishmentCache();
+        WriteJournal journal = new WriteJournal(getDataFolder(), getLogger());
+        remoteClient = new RemoteCoreClient(h.coreUrl(), h.nodeToken(), cache, journal, getLogger());
+        remoteClient.start();
+
+        getServer().getPluginManager().registerEvents(new BanGateListener(cache, ipHashing, lang), this);
+        getServer().getPluginManager().registerEvents(new MuteGateListener(cache, lang), this);
+        getServer().getPluginManager().registerEvents(new MuteCommandBlockListener(cache, lang), this);
+        RemotePunishmentCommands.register(this, remoteClient, cache, lang);
+    }
+
     /** Soft-depends: each hook type is only ever loaded by the JVM once its plugin is confirmed present. */
     private void registerHooks(PunishmentService punishmentService) {
         LuckPermsHook luckPermsHook = null;
@@ -160,6 +197,9 @@ public final class BetterWarden extends JavaPlugin {
         if (springContext != null && springContext.isActive()) {
             getLogger().info("Shutting down embedded Spring context...");
             springContext.close();
+        }
+        if (remoteClient != null) {
+            remoteClient.stop();
         }
     }
 }

@@ -2,18 +2,18 @@ package me.psikuvit.betterWarden.listener;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import me.psikuvit.betterWarden.core.service.LangService;
-import me.psikuvit.betterWarden.core.service.PunishmentService;
+import me.psikuvit.betterWarden.core.service.PunishmentGateway;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
 public class MuteGateListener implements Listener {
 
-    private final PunishmentService service;
+    private final PunishmentGateway service;
     private final LangService lang;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
-    public MuteGateListener(PunishmentService service, LangService lang) {
+    public MuteGateListener(PunishmentGateway service, LangService lang) {
         this.service = service;
         this.lang = lang;
     }
