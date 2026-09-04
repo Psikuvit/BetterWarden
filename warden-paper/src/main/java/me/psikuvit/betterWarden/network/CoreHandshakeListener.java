@@ -78,14 +78,13 @@ public class CoreHandshakeListener implements PluginMessageListener {
     }
 
     /** Read back on a CLIENT boot - see BetterWarden.java. */
-    @SuppressWarnings("unchecked")
     public static Optional<CoreHandshake> readCached(File dataFolder) {
         File cacheFile = new File(dataFolder, "node-handshake.yml");
         if (!cacheFile.exists()) {
             return Optional.empty();
         }
         try (FileInputStream in = new FileInputStream(cacheFile)) {
-            Map<String, Object> data = (Map<String, Object>) new Yaml().load(in);
+            Map<String, Object> data = new Yaml().load(in);
             if (data == null) {
                 return Optional.empty();
             }

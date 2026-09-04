@@ -22,7 +22,7 @@ public final class TargetResolver {
             return Optional.of(new Target(online.getUniqueId(), online.getName()));
         }
         OfflinePlayer cached = Bukkit.getOfflinePlayerIfCached(name);
-        if (cached != null && cached.getUniqueId() != null) {
+        if (cached != null) {
             String resolvedName = cached.getName() != null ? cached.getName() : name;
             return Optional.of(new Target(cached.getUniqueId(), resolvedName));
         }
