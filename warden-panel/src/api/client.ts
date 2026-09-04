@@ -18,7 +18,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   })
   if (!res.ok) {
-    throw new ApiError(res.status, `${path} -> HTTP ${res.status}`)
+    // Backend error responses are {"error": "..."} (see e.g. SetupController, PanelAuthController) -
+    // surface that when present instead of just the HTTP status.
+    let message = `${path} -> HTTP ${res.status}`
+    try {
+      const body = (await res.clone().json()) as { error?: string }
+      if (body.error) message = body.error
+    } catch {
+      // not JSON, or empty body - keep the generic message
+    }
+    throw new ApiError(res.status, message)
   }
   if (res.status === 204) {
     return undefined as T

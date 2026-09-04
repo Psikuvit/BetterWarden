@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import './Login.css'
 
 export default function Login() {
-  const { login } = useAuth()
+  const { login, setupNeeded } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [username, setUsername] = useState('')
@@ -14,6 +14,10 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false)
 
   const from = (location.state as { from?: Location })?.from?.pathname ?? '/dash'
+
+  if (setupNeeded) {
+    return <Navigate to="/setup" replace />
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()

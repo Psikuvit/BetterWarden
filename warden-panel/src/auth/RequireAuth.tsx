@@ -3,11 +3,14 @@ import type { ReactNode } from 'react'
 import { useAuth } from './AuthContext'
 
 export default function RequireAuth({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth()
+  const { user, loading, setupNeeded } = useAuth()
   const location = useLocation()
 
   if (loading) {
     return <div className="muted">Loading...</div>
+  }
+  if (setupNeeded) {
+    return <Navigate to="/setup" replace />
   }
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />
