@@ -4,6 +4,7 @@ import me.psikuvit.betterWarden.core.network.CoreHandshake;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
+import org.jspecify.annotations.NonNull;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -35,7 +36,7 @@ public class CoreHandshakeListener implements PluginMessageListener {
     }
 
     @Override
-    public void onPluginMessageReceived(String channel, Player player, byte[] message) {
+    public void onPluginMessageReceived(@NonNull String channel, @NonNull Player player, byte[] message) {
         if (!CoreHandshake.CHANNEL_ID.equals(channel)) {
             return;
         }
