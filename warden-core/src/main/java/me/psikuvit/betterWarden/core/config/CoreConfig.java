@@ -21,6 +21,7 @@ public class CoreConfig {
     private Maintenance maintenance = new Maintenance();
     private Node node = new Node();
     private ChatFilter chatFilter = new ChatFilter();
+    private Discord discord = new Discord();
 
     public int getConfigVersion() {
         return configVersion;
@@ -108,6 +109,14 @@ public class CoreConfig {
 
     public void setChatFilter(ChatFilter chatFilter) {
         this.chatFilter = chatFilter;
+    }
+
+    public Discord getDiscord() {
+        return discord;
+    }
+
+    public void setDiscord(Discord discord) {
+        this.discord = discord;
     }
 
     public static class Storage {
@@ -390,6 +399,82 @@ public class CoreConfig {
 
         public void setAutoPunishDurationMinutes(int autoPunishDurationMinutes) {
             this.autoPunishDurationMinutes = autoPunishDurationMinutes;
+        }
+    }
+
+    /**
+     * docs/spec/05-DISCORD-BOT.txt. Buyer's own bot token, never a shared one - see DiscordBotService.
+     * Bot is entirely optional: blank token or enabled=false both mean "don't connect".
+     * staffRoleIds is a flat allowlist for MVP - the spec's full Discord-role -> panel-role tiered
+     * mapping (§1 "Role picker for staff permissions") is deferred, see PLAN.md.
+     */
+    public static class Discord {
+        private boolean enabled = false;
+        private String token = "";
+        private String guildId = "";
+        private List<String> staffRoleIds = new ArrayList<>();
+        private Feeds feeds = new Feeds();
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getToken() {
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
+        }
+
+        public String getGuildId() {
+            return guildId;
+        }
+
+        public void setGuildId(String guildId) {
+            this.guildId = guildId;
+        }
+
+        public List<String> getStaffRoleIds() {
+            return staffRoleIds;
+        }
+
+        public void setStaffRoleIds(List<String> staffRoleIds) {
+            this.staffRoleIds = staffRoleIds;
+        }
+
+        public Feeds getFeeds() {
+            return feeds;
+        }
+
+        public void setFeeds(Feeds feeds) {
+            this.feeds = feeds;
+        }
+
+        /** Channel IDs, one per feed - blank means that feed is off. docs/spec §4 lists more feeds (tickets, appeals, node-status, changelog) than are wired up yet, see PLAN.md. */
+        public static class Feeds {
+            private String punishmentLog = "";
+            private String digest = "";
+
+            public String getPunishmentLog() {
+                return punishmentLog;
+            }
+
+            public void setPunishmentLog(String punishmentLog) {
+                this.punishmentLog = punishmentLog;
+            }
+
+            public String getDigest() {
+                return digest;
+            }
+
+            public void setDigest(String digest) {
+                this.digest = digest;
+            }
         }
     }
 }

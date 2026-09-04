@@ -32,3 +32,16 @@ warden:
   maintenance:
     report-auto-close-hours: 72
     ticket-auto-close-hours: 168
+
+  discord:
+    enabled: false
+    # Your own bot token from discord.com/developers - never a shared one. Leave blank/enabled:
+    # false to skip connecting entirely (the bot is optional, everything else works without it).
+    token: ""
+    guild-id: ""
+    # Discord role IDs allowed to use moderation slash commands - empty means nobody can, not everyone.
+    staff-role-ids: []
+    feeds:
+      # Channel IDs - blank means that feed is off.
+      punishment-log: ""
+      digest: ""

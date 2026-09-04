@@ -56,3 +56,16 @@ warden:
     auto-punish-threshold: 5
     auto-punish-window-minutes: 10
     auto-punish-duration-minutes: 30
+
+  discord:
+    enabled: false
+    # Your own bot token from discord.com/developers - never a shared one. Leave blank/enabled:
+    # false to skip connecting entirely (the bot is optional, everything else works without it).
+    token: ""
+    guild-id: ""
+    # Discord role IDs allowed to use moderation slash commands - empty means nobody can, not everyone.
+    staff-role-ids: []
+    feeds:
+      # Channel IDs - blank means that feed is off.
+      punishment-log: ""
+      digest: ""

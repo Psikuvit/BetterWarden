@@ -2,6 +2,8 @@ package me.psikuvit.betterWarden.core.service;
 
 import me.psikuvit.betterWarden.core.event.EventBus;
 import me.psikuvit.betterWarden.core.event.PunishmentChangedEvent;
+import me.psikuvit.betterWarden.core.event.PunishmentIssuedEvent;
+import me.psikuvit.betterWarden.core.event.PunishmentRevokedEvent;
 import me.psikuvit.betterWarden.core.model.ActorType;
 import me.psikuvit.betterWarden.core.model.AuditLogEntry;
 import me.psikuvit.betterWarden.core.model.Escalation;
@@ -113,6 +115,7 @@ public class PunishmentService implements PunishmentGateway {
 
         audit(staffUuid, "REVOKE_" + punishment.getType(), punishment.getUuid(), "reason=" + reason);
         eventBus.publish(new PunishmentChangedEvent(punishment.getUuid()));
+        eventBus.publish(new PunishmentRevokedEvent(punishment));
         return Optional.of(punishment);
     }
 
@@ -183,6 +186,7 @@ public class PunishmentService implements PunishmentGateway {
                 "reason=" + reason + ", duration=" + (duration == null ? "perm" : duration));
 
         eventBus.publish(new PunishmentChangedEvent(targetUuid.toString()));
+        eventBus.publish(new PunishmentIssuedEvent(punishment));
         applyImmediateEffect(targetUuid, punishment);
         return punishment;
     }

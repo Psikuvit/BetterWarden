@@ -66,5 +66,14 @@
             <artifactId>hibernate-community-dialects</artifactId>
             <version>7.4.0.Final</version>
         </dependency>
+        <dependency>
+            <!-- docs/spec/05-DISCORD-BOT.txt: "JDA, running inside Core" - so every platform
+                 (embedded or standalone) gets the bot for free, not a per-platform reimplementation.
+                 slf4j-api version matches what's already resolved here (2.0.18), confirmed via
+                 JDA's own POM before adding this - no version conflict to relocate around. -->
+            <groupId>net.dv8tion</groupId>
+            <artifactId>JDA</artifactId>
+            <version>6.5.0</version>
+        </dependency>
     </dependencies>
 </project>

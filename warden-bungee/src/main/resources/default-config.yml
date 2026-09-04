@@ -51,3 +51,16 @@ warden:
     # embedded core over HTTP (Stage 3 handshake). Change this if backends
     # run on a different machine than the proxy.
     advertise-host: localhost
+
+  discord:
+    enabled: false
+    # Your own bot token from discord.com/developers - never a shared one. Leave blank/enabled:
+    # false to skip connecting entirely (the bot is optional, everything else works without it).
+    token: ""
+    guild-id: ""
+    # Discord role IDs allowed to use moderation slash commands - empty means nobody can, not everyone.
+    staff-role-ids: []
+    feeds:
+      # Channel IDs - blank means that feed is off.
+      punishment-log: ""
+      digest: ""
