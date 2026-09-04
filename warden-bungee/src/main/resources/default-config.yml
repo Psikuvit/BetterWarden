@@ -1,0 +1,53 @@
+# BetterWarden configuration (BungeeCord/Waterfall proxy).
+
+warden:
+  config-version: 1
+
+  server-name: "My Network"
+
+  # host | client. host embeds its own core (default). client connects to an
+  # external core instead (e.g. a warden-standalone Docker deployment) and never
+  # boots a local database - set warden.core.url below when using client.
+  mode: host
+
+  # Only read when mode: client. Must match a node-token the target core also has (same
+  # value as warden.security.node-token below, copied into that core's own config.yml).
+  core:
+    url: "http://localhost:8095"
+
+  storage:
+    # sqlite | mysql - only relevant in host mode.
+    type: sqlite
+    mysql:
+      host: localhost
+      port: 3306
+      database: warden
+      username: warden
+      password: ""
+
+  panel:
+    port: 8095
+    # Set to "127.0.0.1" once a reverse proxy on this same machine is the
+    # only intended way in. Leave blank to bind all interfaces.
+    bind-address: ""
+    # Only turn this on if a reverse proxy or tunnel (nginx/Caddy/Cloudflare
+    # Tunnel) is the sole way in - see docs/deployment. If this panel is ever
+    # reachable directly, leave it false: X-Forwarded-* headers are otherwise
+    # spoofable by any client.
+    trust-forwarded-headers: false
+
+  login-gate:
+    fail-open: true
+
+  alt-detection:
+    ban-evasion-auto-action: false
+
+  maintenance:
+    report-auto-close-hours: 72
+    ticket-auto-close-hours: 168
+
+  node:
+    # host mode only: host backend servers should use to reach this proxy's
+    # embedded core over HTTP (Stage 3 handshake). Change this if backends
+    # run on a different machine than the proxy.
+    advertise-host: localhost

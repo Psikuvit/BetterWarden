@@ -15,6 +15,7 @@
         <module>warden-core</module>
         <module>warden-paper</module>
         <module>warden-velocity</module>
+        <module>warden-bungee</module>
         <module>warden-standalone</module>
     </modules>
 

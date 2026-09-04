@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>me.psikuvit</groupId>
+        <artifactId>betterwarden-parent</artifactId>
+        <version>1.0</version>
+    </parent>
+
+    <artifactId>warden-bungee</artifactId>
+    <packaging>jar</packaging>
+
+    <name>warden-bungee</name>
+    <description>BungeeCord/Waterfall proxy plugin - not API-compatible with Velocity, a full separate command/event/messaging surface (net.md_5.bungee.*) reimplemented against the same warden-core.</description>
+
+    <build>
+        <finalName>BetterWarden-Bungee</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <minimizeJar>false</minimizeJar>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>**/module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.yaml.snakeyaml</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.snakeyaml</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google.common</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.guava</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google.gson</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.gson</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.netty</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.netty</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.slf4j</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.slf4j</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.fasterxml.jackson</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.jackson</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <!-- Jackson 3's actual namespace for core/databind (annotations stayed on com.fasterxml.jackson above) - warden-velocity's pom predates this being noticed, flagged separately. -->
+                                    <pattern>tools.jackson</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.toolsjackson</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.commons</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.commons</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/spring.factories</resource>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</resource>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <excludes>
+                    <exclude>default-config.yml</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>default-config.yml</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>net.md-5</groupId>
+            <artifactId>bungeecord-api</artifactId>
+            <version>1.21-R0.3</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <!-- Adventure/MiniMessage bridge - BungeeCord has no native Adventure support, unlike Paper/Velocity. -->
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-platform-bungeecord</artifactId>
+            <version>4.4.1</version>
+        </dependency>
+        <dependency>
+            <!-- Converts a deserialized MiniMessage Component to BaseComponent[] for ProxiedPlayer#disconnect - Audience has no kick concept. -->
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-serializer-bungeecord</artifactId>
+            <version>4.4.1</version>
+        </dependency>
+        <dependency>
+            <!-- Not pulled transitively by adventure-platform-bungeecord - matches the adventure-api
+                 version (4.21.0) that its own serializer deps already resolve to. -->
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-minimessage</artifactId>
+            <version>4.21.0</version>
+        </dependency>
+        <dependency>
+            <!-- Plugin#getLogger() returns java.util.logging.Logger, not SLF4J (opposite problem from Velocity) -
+                 binds org.slf4j.LoggerFactory to JUL so RemoteCoreClient/WriteJournal's Logger param works unchanged. -->
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>2.0.18</version>
+        </dependency>
+
+        <dependency>
+            <groupId>me.psikuvit</groupId>
+            <artifactId>warden-core</artifactId>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,4 @@
+name: BetterWarden
+main: me.psikuvit.betterWarden.WardenBungeePlugin
+version: ${version}
+author: psikuvit
