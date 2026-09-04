@@ -133,7 +133,7 @@ public final class WardenAdminCommands {
         StringBuilder report = new StringBuilder();
         report.append("BetterWarden debug report\n");
         report.append("Generated: ").append(Instant.now()).append('\n');
-        report.append("Plugin version: ").append(plugin.getDescription().getVersion()).append('\n');
+        report.append("Plugin version: ").append(plugin.getPluginMeta().getVersion()).append('\n');
         report.append("Server: ").append(Bukkit.getVersion()).append('\n');
         report.append("Bukkit API: ").append(Bukkit.getBukkitVersion()).append('\n');
         report.append("Java: ").append(System.getProperty("java.version")).append('\n');

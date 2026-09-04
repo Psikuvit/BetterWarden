@@ -39,7 +39,6 @@ public final class ConfigBootstrap {
         return configFile;
     }
 
-    @SuppressWarnings("unchecked")
     public static void applyToSystemProperties(File configFile, File dataFolder) throws IOException {
         // Makes config.yml itself a Spring property source, so CoreConfig's
         // @ConfigurationProperties(prefix = "warden") actually binds from it.
@@ -118,6 +117,7 @@ public final class ConfigBootstrap {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private static Map<String, Object> asMap(Object o) {
         return o == null ? Map.of() : (Map<String, Object>) o;
     }
