@@ -63,6 +63,11 @@ public class Punishment {
         return id;
     }
 
+    /** JPA generates this normally - only needed when reconstructing a detached instance from a CLIENT node's REST snapshot (see PunishmentDto). */
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getUuid() {
         return uuid;
     }

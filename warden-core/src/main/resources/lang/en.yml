@@ -6,6 +6,8 @@ common:
 
 punish:
   issued: "<gray>{0} issued to <white>{1}</white> (#{2}): {3}"
+  queued: "<yellow>Core is unreachable - {0} on <white>{1}</white> is queued and will apply once it's back."
+  revoke-queued: "<yellow>Core is unreachable - the revoke for <white>{1}</white> is queued and will apply once it's back."
   ipban-issued: "<gray>IPBAN issued to <white>{0}</white> (#{1}): {2}"
   no-reason: "No reason specified"
   invalid-duration: "<red>Invalid duration: {0}"

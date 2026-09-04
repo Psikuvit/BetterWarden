@@ -28,7 +28,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class PunishmentService {
+public class PunishmentService implements PunishmentGateway {
 
     private final PunishmentRepository punishments;
     private final PunishmentRevokeRepository revokes;

@@ -80,9 +80,8 @@ public final class ConfigBootstrap {
     }
 
     /**
-     * Reads warden.mode before Spring boots, so a backend can skip booting its own HOST core
-     * entirely when it's explicitly configured as a proxy CLIENT (see PLAN.md Stage 3 - CLIENT
-     * mode itself, the REST/WS client, isn't built yet; this only decides whether HOST boots).
+     * Reads warden.mode before Spring boots: HOST boots the full local core, CLIENT connects to
+     * a proxy's core instead (RemoteCoreClient in warden-paper) and never touches local storage.
      */
     public static String readMode(File configFile) throws IOException {
         Map<String, Object> root;
@@ -91,6 +90,17 @@ public final class ConfigBootstrap {
         }
         Map<String, Object> warden = asMap(root.get("warden"));
         return String.valueOf(warden.getOrDefault("mode", "HOST")).toUpperCase(Locale.ROOT);
+    }
+
+    /** CLIENT mode needs the salt for IpHashingService without booting Spring - see BetterWarden.java. */
+    public static String readIpSalt(File configFile) throws IOException {
+        Map<String, Object> root;
+        try (InputStream in = new FileInputStream(configFile)) {
+            root = new Yaml().load(in);
+        }
+        Map<String, Object> warden = asMap(root.get("warden"));
+        Map<String, Object> security = asMap(warden.get("security"));
+        return String.valueOf(security.getOrDefault("ip-salt", ""));
     }
 
     /**
