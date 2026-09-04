@@ -71,6 +71,12 @@ public final class ConfigBootstrap {
         if (port != null) {
             System.setProperty("server.port", String.valueOf(port));
         }
+        Object bindAddress = panel.get("bind-address");
+        if (bindAddress != null && !String.valueOf(bindAddress).isBlank()) {
+            System.setProperty("server.address", String.valueOf(bindAddress));
+        }
+        boolean trustForwardedHeaders = Boolean.parseBoolean(String.valueOf(panel.getOrDefault("trust-forwarded-headers", false)));
+        System.setProperty("server.forward-headers-strategy", trustForwardedHeaders ? "native" : "none");
     }
 
     /**

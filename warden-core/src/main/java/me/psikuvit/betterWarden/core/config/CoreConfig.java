@@ -169,6 +169,10 @@ public class CoreConfig {
 
     public static class Panel {
         private int port = 8095;
+        /** Empty = bind all interfaces (Spring Boot's own default). Set to "127.0.0.1" when a reverse proxy on the same host is the only intended way in. */
+        private String bindAddress = "";
+        /** Off by default: blindly trusting X-Forwarded-* lets a client spoof its own IP unless something in front actually strips/sets them. Turn on only when a reverse proxy or tunnel (nginx/Caddy/Cloudflare Tunnel) is the sole way in. */
+        private boolean trustForwardedHeaders = false;
 
         public int getPort() {
             return port;
@@ -176,6 +180,22 @@ public class CoreConfig {
 
         public void setPort(int port) {
             this.port = port;
+        }
+
+        public String getBindAddress() {
+            return bindAddress;
+        }
+
+        public void setBindAddress(String bindAddress) {
+            this.bindAddress = bindAddress;
+        }
+
+        public boolean isTrustForwardedHeaders() {
+            return trustForwardedHeaders;
+        }
+
+        public void setTrustForwardedHeaders(boolean trustForwardedHeaders) {
+            this.trustForwardedHeaders = trustForwardedHeaders;
         }
     }
 

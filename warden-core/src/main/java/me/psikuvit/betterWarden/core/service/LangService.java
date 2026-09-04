@@ -39,7 +39,6 @@ public class LangService {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private void flatten(Map<String, String> out, String prefix, Object node) {
         if (node instanceof Map<?, ?> map) {
             for (Map.Entry<?, ?> entry : map.entrySet()) {

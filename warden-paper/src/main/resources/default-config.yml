@@ -22,6 +22,14 @@ warden:
 
   panel:
     port: 8095
+    # Set to "127.0.0.1" once a reverse proxy on this same machine is the
+    # only intended way in. Leave blank to bind all interfaces.
+    bind-address: ""
+    # Only turn this on if a reverse proxy or tunnel (nginx/Caddy/Cloudflare
+    # Tunnel) is the sole way in - see docs/deployment. If this panel is ever
+    # reachable directly, leave it false: X-Forwarded-* headers are otherwise
+    # spoofable by any client.
+    trust-forwarded-headers: false
 
   login-gate:
     fail-open: true
