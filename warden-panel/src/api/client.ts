@@ -35,13 +35,3 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   })
 }
-
-export interface HealthStatus {
-  status: string
-  time: string
-  players: number
-}
-
-export const api = {
-  health: () => request<HealthStatus>('/health'),
-}
