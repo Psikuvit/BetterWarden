@@ -1,0 +1,9 @@
+{
+  "id": "betterwarden",
+  "name": "BetterWarden",
+  "version": "1.0",
+  "description": "Moderation & staff-ops platform - Velocity proxy",
+  "authors": ["psikuvit"],
+  "dependencies": [],
+  "main": "me.psikuvit.betterWarden.WardenVelocityPlugin"
+}

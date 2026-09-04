@@ -1,0 +1,29 @@
+# BetterWarden configuration (Velocity proxy, HOST mode).
+
+warden:
+  config-version: 1
+
+  server-name: "My Network"
+
+  storage:
+    # sqlite | mysql (mysql not wired up yet)
+    type: sqlite
+    mysql:
+      host: localhost
+      port: 3306
+      database: warden
+      username: warden
+      password: ""
+
+  panel:
+    port: 8095
+
+  login-gate:
+    fail-open: true
+
+  alt-detection:
+    ban-evasion-auto-action: false
+
+  maintenance:
+    report-auto-close-hours: 72
+    ticket-auto-close-hours: 168
