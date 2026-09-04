@@ -12,8 +12,12 @@ import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import me.psikuvit.betterWarden.bridge.VelocityBridge;
 import me.psikuvit.betterWarden.command.GlobalPunishmentCommands;
+import me.psikuvit.betterWarden.command.RemoteGlobalPunishmentCommands;
 import me.psikuvit.betterWarden.command.WardenProxyCommands;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
+import me.psikuvit.betterWarden.core.client.RemoteCoreClient;
+import me.psikuvit.betterWarden.core.client.RemotePunishmentCache;
+import me.psikuvit.betterWarden.core.client.WriteJournal;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.network.CoreHandshake;
@@ -32,8 +36,9 @@ import org.springframework.core.io.DefaultResourceLoader;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.Optional;
 
-/** Stage 3 risk spike: same embedded-Spring approach as warden-paper (Stage 0), done for Velocity. HOST mode only - announces itself to backends on join, but there's no CLIENT mode on the receiving end yet. */
+/** Boots either HOST (embeds the core, Stage 3) or CLIENT (talks to an external core over REST/WS, Stage 4) per warden.mode. */
 @Plugin(id = "betterwarden", name = "BetterWarden", version = "1.0",
         description = "Moderation & staff-ops platform - Velocity proxy")
 public final class WardenVelocityPlugin {
@@ -45,6 +50,9 @@ public final class WardenVelocityPlugin {
     private final Path dataDirectory;
 
     private ConfigurableApplicationContext springContext;
+    private RemoteCoreClient remoteClient;
+    /** Set only in CLIENT mode - what onServerPostConnect relays to backends instead of this proxy's own (nonexistent) embedded core. */
+    private CoreHandshake clientHandshakeToRelay;
 
     @Inject
     public WardenVelocityPlugin(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
@@ -64,13 +72,20 @@ public final class WardenVelocityPlugin {
 
         File dataFolder = dataDirectory.toFile();
         File configFile;
+        String mode;
         try {
             configFile = ConfigBootstrap.ensureConfigFile(dataFolder,
                     () -> getClass().getClassLoader().getResourceAsStream("default-config.yml"));
             ConfigBootstrap.ensureSecuritySecrets(configFile);
             ConfigBootstrap.applyToSystemProperties(configFile, dataFolder);
+            mode = ConfigBootstrap.readMode(configFile);
         } catch (Exception e) {
             logger.error("Could not load config.yml - BetterWarden will not start", e);
+            return;
+        }
+
+        if ("CLIENT".equals(mode)) {
+            bootClientMode(configFile, dataFolder);
             return;
         }
 
@@ -97,30 +112,81 @@ public final class WardenVelocityPlugin {
         PunishmentService punishmentService = springContext.getBean(PunishmentService.class);
         LangService lang = springContext.getBean(LangService.class);
         CoreConfig config = springContext.getBean(CoreConfig.class);
+        NodeWebSocketHandler nodeHub = springContext.getBean(NodeWebSocketHandler.class);
 
         GlobalPunishmentCommands.register(server, springContext.getBean(PlayerRepository.class), punishmentService, lang);
-        WardenProxyCommands.register(server, config, lang, springContext.getBean(NodeWebSocketHandler.class));
+        WardenProxyCommands.register(server, lang,
+                () -> "http://" + config.getNode().getAdvertiseHost() + ":" + config.getPanel().getPort(),
+                () -> Optional.of(nodeHub.connectedCount()));
 
         server.getEventManager().register(this, new ProxyLoginGateListener(
                 punishmentService, springContext.getBean(IpHashingService.class), config, lang, logger));
     }
 
-    /** Announces this proxy's embedded core to whichever backend a player just connected to. */
-    @Subscribe
-    public void onServerPostConnect(ServerPostConnectEvent event) {
-        if (springContext == null || !springContext.isActive()) {
+    /**
+     * No local core at all - never boots Spring/JPA/SQLite/Tomcat. Mirrors warden-paper's CLIENT
+     * mode, but this proxy has no upstream handshake to read its core URL from (it IS the top of
+     * the topology when pointed at a standalone core) - warden.core.url in its own config.yml
+     * instead. Still relays a handshake to backends on join, same as HOST mode, so a Paper backend
+     * behind this proxy doesn't need to know or care whether the core is embedded or standalone.
+     */
+    private void bootClientMode(File configFile, File dataFolder) {
+        String coreUrl;
+        String nodeToken;
+        boolean failOpen;
+        String ipSalt;
+        try {
+            coreUrl = ConfigBootstrap.readCoreUrl(configFile);
+            nodeToken = ConfigBootstrap.readNodeToken(configFile);
+            failOpen = ConfigBootstrap.readLoginGateFailOpen(configFile);
+            ipSalt = ConfigBootstrap.readIpSalt(configFile);
+        } catch (Exception e) {
+            logger.error("Could not read config.yml for CLIENT mode", e);
             return;
         }
+        if (coreUrl.isBlank()) {
+            logger.error("warden.mode is 'client' but warden.core.url is not set - "
+                    + "point it at your standalone core (e.g. http://localhost:8095) and restart.");
+            return;
+        }
+        logger.info("CLIENT mode - connecting to Core at {}...", coreUrl);
+
+        LangService lang = new LangService();
+        CoreConfig rawConfig = new CoreConfig();
+        rawConfig.getSecurity().setIpSalt(ipSalt);
+        rawConfig.getLoginGate().setFailOpen(failOpen);
+        IpHashingService ipHashing = new IpHashingService(rawConfig);
+
+        RemotePunishmentCache cache = new RemotePunishmentCache();
+        WriteJournal journal = new WriteJournal(dataFolder, logger);
+        remoteClient = new RemoteCoreClient(coreUrl, nodeToken, cache, journal, logger);
+        remoteClient.start();
+
+        RemoteGlobalPunishmentCommands.register(server, remoteClient, cache, lang);
+        WardenProxyCommands.register(server, lang, () -> coreUrl, remoteClient::nodeCount);
+        server.getEventManager().register(this, new ProxyLoginGateListener(cache, ipHashing, rawConfig, lang, logger));
+
+        clientHandshakeToRelay = new CoreHandshake(coreUrl, nodeToken, VERSION, CoreHandshake.TIER_STANDALONE);
+    }
+
+    /** Announces the active core (embedded or, in CLIENT mode, the external one this proxy itself talks to) to whichever backend a player just connected to. */
+    @Subscribe
+    public void onServerPostConnect(ServerPostConnectEvent event) {
+        CoreHandshake handshake;
+        if (springContext != null && springContext.isActive()) {
+            CoreConfig config = springContext.getBean(CoreConfig.class);
+            String coreUrl = "http://" + config.getNode().getAdvertiseHost() + ":" + config.getPanel().getPort();
+            handshake = new CoreHandshake(coreUrl, config.getSecurity().getNodeToken(), VERSION, CoreHandshake.TIER_EMBEDDED);
+        } else if (clientHandshakeToRelay != null) {
+            handshake = clientHandshakeToRelay;
+        } else {
+            return;
+        }
+
         ServerConnection connection = event.getPlayer().getCurrentServer().orElse(null);
         if (connection == null) {
             return;
         }
-
-        CoreConfig config = springContext.getBean(CoreConfig.class);
-        String coreUrl = "http://" + config.getNode().getAdvertiseHost() + ":" + config.getPanel().getPort();
-        CoreHandshake handshake = new CoreHandshake(coreUrl, config.getSecurity().getNodeToken(),
-                VERSION, CoreHandshake.TIER_EMBEDDED);
-
         connection.sendPluginMessage(
                 MinecraftChannelIdentifier.create(CoreHandshake.CHANNEL_NAMESPACE, CoreHandshake.CHANNEL_NAME),
                 handshake.toBytes());
@@ -131,6 +197,9 @@ public final class WardenVelocityPlugin {
         if (springContext != null && springContext.isActive()) {
             logger.info("Shutting down embedded Spring context...");
             springContext.close();
+        }
+        if (remoteClient != null) {
+            remoteClient.stop();
         }
     }
 }

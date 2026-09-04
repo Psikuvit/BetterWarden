@@ -1,12 +1,22 @@
-# BetterWarden configuration (Velocity proxy, HOST mode).
+# BetterWarden configuration (Velocity proxy).
 
 warden:
   config-version: 1
 
   server-name: "My Network"
 
+  # host | client. host embeds its own core (default - Stage 3). client connects to an
+  # external core instead (e.g. a warden-standalone Docker deployment, Stage 4) and never
+  # boots a local database - set warden.core.url below when using client.
+  mode: host
+
+  # Only read when mode: client. Must match a node-token the target core also has (same
+  # value as warden.security.node-token below, copied into that core's own config.yml).
+  core:
+    url: "http://localhost:8095"
+
   storage:
-    # sqlite | mysql (mysql not wired up yet)
+    # sqlite | mysql - only relevant in host mode.
     type: sqlite
     mysql:
       host: localhost
@@ -37,7 +47,7 @@ warden:
     ticket-auto-close-hours: 168
 
   node:
-    # Host backend servers should use to reach this proxy's embedded core
-    # over HTTP (Stage 3 handshake). Change this if backends run on a
-    # different machine than the proxy.
+    # host mode only: host backend servers should use to reach this proxy's
+    # embedded core over HTTP (Stage 3 handshake). Change this if backends
+    # run on a different machine than the proxy.
     advertise-host: localhost

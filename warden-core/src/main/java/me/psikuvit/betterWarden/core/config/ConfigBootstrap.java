@@ -101,7 +101,7 @@ public final class ConfigBootstrap {
 
     /**
      * Reads warden.mode before Spring boots: HOST boots the full local core, CLIENT connects to
-     * a proxy's core instead (RemoteCoreClient in warden-paper) and never touches local storage.
+     * an external core instead (core.client.RemoteCoreClient) and never touches local storage.
      */
     public static String readMode(File configFile) throws IOException {
         Map<String, Object> root;
@@ -110,6 +110,43 @@ public final class ConfigBootstrap {
         }
         Map<String, Object> warden = asMap(root.get("warden"));
         return String.valueOf(warden.getOrDefault("mode", "HOST")).toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * warden-velocity's own CLIENT mode reads its core URL directly from config.yml (warden.core.url)
+     * - unlike warden-paper's CLIENT mode, there's no upstream proxy to hand it one via a handshake;
+     * a Velocity proxy in CLIENT mode IS the top of the topology, pointed at a standalone core.
+     */
+    public static String readCoreUrl(File configFile) throws IOException {
+        Map<String, Object> root;
+        try (InputStream in = new FileInputStream(configFile)) {
+            root = new Yaml().load(in);
+        }
+        Map<String, Object> warden = asMap(root.get("warden"));
+        Map<String, Object> core = asMap(warden.get("core"));
+        return String.valueOf(core.getOrDefault("url", ""));
+    }
+
+    /** Velocity's CLIENT-mode login gate needs this without booting Spring - see WardenVelocityPlugin.java. */
+    public static boolean readLoginGateFailOpen(File configFile) throws IOException {
+        Map<String, Object> root;
+        try (InputStream in = new FileInputStream(configFile)) {
+            root = new Yaml().load(in);
+        }
+        Map<String, Object> warden = asMap(root.get("warden"));
+        Map<String, Object> loginGate = asMap(warden.get("login-gate"));
+        return Boolean.parseBoolean(String.valueOf(loginGate.getOrDefault("fail-open", true)));
+    }
+
+    /** CLIENT mode needs its own node-token to present, without booting Spring - see ensureSecuritySecrets. */
+    public static String readNodeToken(File configFile) throws IOException {
+        Map<String, Object> root;
+        try (InputStream in = new FileInputStream(configFile)) {
+            root = new Yaml().load(in);
+        }
+        Map<String, Object> warden = asMap(root.get("warden"));
+        Map<String, Object> security = asMap(warden.get("security"));
+        return String.valueOf(security.getOrDefault("node-token", ""));
     }
 
     /** CLIENT mode needs the salt for IpHashingService without booting Spring - see BetterWarden.java. */

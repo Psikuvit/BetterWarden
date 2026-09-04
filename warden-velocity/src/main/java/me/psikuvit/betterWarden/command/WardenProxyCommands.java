@@ -4,18 +4,24 @@ import com.velocitypowered.api.command.CommandManager;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.ProxyServer;
-import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.service.LangService;
-import me.psikuvit.betterWarden.core.ws.NodeWebSocketHandler;
 
 import java.util.Locale;
+import java.util.Optional;
+import java.util.function.Supplier;
 
-/** {@code /warden ...} on the proxy side: "panel" and "nodes". */
+/**
+ * {@code /warden ...} on the proxy side: "panel" and "nodes". Takes panelUrl/nodeCount as
+ * suppliers rather than a CoreConfig/NodeWebSocketHandler directly, so the same command works
+ * whether this proxy is HOST (embeds its own core) or CLIENT (talks to an external one over
+ * RemoteCoreClient, which has no local node hub of its own to ask directly).
+ */
 public final class WardenProxyCommands {
 
     private static final String PERMISSION = "warden.admin";
 
-    public static void register(ProxyServer server, CoreConfig config, LangService lang, NodeWebSocketHandler nodeHub) {
+    public static void register(ProxyServer server, LangService lang, Supplier<String> panelUrl,
+                                 Supplier<Optional<Integer>> nodeCount) {
         CommandManager manager = server.getCommandManager();
         manager.register(manager.metaBuilder("warden").plugin(WardenProxyCommands.class).build(), new SimpleCommand() {
             @Override
@@ -32,13 +38,12 @@ public final class WardenProxyCommands {
                     return;
                 }
                 switch (args[0].toLowerCase(Locale.ROOT)) {
-                    case "panel" -> {
-                        String panelUrl = "http://" + config.getNode().getAdvertiseHost() + ":" + config.getPanel().getPort();
-                        source.sendRichMessage(lang.get("admin.panel-url", panelUrl));
-                    }
+                    case "panel" -> source.sendRichMessage(lang.get("admin.panel-url", panelUrl.get()));
                     // No per-node identity yet (shared node-token, see NodeAuthInterceptor) - just
                     // a live connection count until NodeRegistry tracks who's actually connected.
-                    case "nodes" -> source.sendRichMessage(lang.get("admin.nodes-connected", nodeHub.connectedCount()));
+                    case "nodes" -> nodeCount.get().ifPresentOrElse(
+                            count -> source.sendRichMessage(lang.get("admin.nodes-connected", count)),
+                            () -> source.sendRichMessage("<red>Could not reach Core for the node count."));
                     default -> source.sendRichMessage("<gray>Usage: /warden <panel|nodes>");
                 }
             }

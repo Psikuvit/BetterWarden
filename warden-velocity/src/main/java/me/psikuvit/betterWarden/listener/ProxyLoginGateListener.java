@@ -9,30 +9,32 @@ import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.service.IpHashingService;
 import me.psikuvit.betterWarden.core.service.LangService;
-import me.psikuvit.betterWarden.core.service.PunishmentService;
+import me.psikuvit.betterWarden.core.service.PunishmentGateway;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.slf4j.Logger;
 
 import java.util.Optional;
 
 /**
- * Network-wide ban gate: since the proxy embeds the same core (HOST mode), this reads straight
- * from PunishmentCache - already in-memory, warmed at boot, kept current by PunishmentChangedEvent
- * (docs/spec: "resolved from cache <1ms, updated by push never polled"). There's no network I/O
- * in this path yet (that only exists once CLIENT mode talks to a remote core), so the spec's
- * "hard 250ms timeout" doesn't apply here - the try/catch below is what "fail-open by default"
- * actually protects against right now: an unexpected exception, not slowness.
+ * Network-wide ban gate. In HOST mode this reads straight from PunishmentCache - already
+ * in-memory, warmed at boot, kept current by PunishmentChangedEvent (docs/spec: "resolved from
+ * cache <1ms, updated by push never polled") - via PunishmentGateway, so the exact same listener
+ * also works unchanged in CLIENT mode against RemotePunishmentCache. In HOST mode there's no
+ * network I/O in this path, so the spec's "hard 250ms timeout" doesn't apply - the try/catch
+ * below is what "fail-open by default" actually protects against there: an unexpected exception,
+ * not slowness. In CLIENT mode the gateway itself IS a network call (REST-backed cache refresh),
+ * so this try/catch is also the closest thing to that timeout right now - see PLAN.md.
  */
 public class ProxyLoginGateListener {
 
-    private final PunishmentService punishmentService;
+    private final PunishmentGateway punishmentService;
     private final IpHashingService ipHashing;
     private final CoreConfig config;
     private final LangService lang;
     private final Logger logger;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
-    public ProxyLoginGateListener(PunishmentService punishmentService, IpHashingService ipHashing,
+    public ProxyLoginGateListener(PunishmentGateway punishmentService, IpHashingService ipHashing,
                                    CoreConfig config, LangService lang, Logger logger) {
         this.punishmentService = punishmentService;
         this.ipHashing = ipHashing;
