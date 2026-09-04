@@ -9,6 +9,8 @@ import me.psikuvit.betterWarden.command.WardenAdminCommands;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import me.psikuvit.betterWarden.core.config.CoreConfig;
+import me.psikuvit.betterWarden.core.network.CoreHandshake;
+import me.psikuvit.betterWarden.network.CoreHandshakeListener;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
 import me.psikuvit.betterWarden.core.service.ChatHistoryService;
 import me.psikuvit.betterWarden.core.service.ChatInputService;
@@ -54,11 +56,34 @@ public final class BetterWarden extends JavaPlugin {
         try {
             configFile = ConfigBootstrap.ensureConfigFile(getDataFolder(),
                     () -> getResource("default-config.yml"));
-            ConfigBootstrap.ensureIpSalt(configFile);
+            ConfigBootstrap.ensureSecuritySecrets(configFile);
             ConfigBootstrap.applyToSystemProperties(configFile, getDataFolder());
         } catch (Exception e) {
             getLogger().severe("Could not load config.yml: " + e);
             getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        getServer().getMessenger().registerIncomingPluginChannel(this, CoreHandshake.CHANNEL_ID,
+                new CoreHandshakeListener(this, getDataFolder()));
+        CoreHandshakeListener.warnIfCached(this, getDataFolder());
+
+        String mode;
+        try {
+            mode = ConfigBootstrap.readMode(configFile);
+        } catch (Exception e) {
+            getLogger().severe("Could not read warden.mode from config.yml: " + e);
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        if ("CLIENT".equals(mode)) {
+            // CLIENT mode's actual networking (REST/WS to a proxy's core) isn't built yet -
+            // see PLAN.md Stage 3. Refusing to boot a second, independent HOST core here is
+            // deliberate: it avoids the split-brain a silently-still-HOST backend would cause
+            // once a real CLIENT does exist. Until then this server has no punishment features.
+            getLogger().warning("warden.mode is 'client' - this server will NOT boot its own core. "
+                    + "CLIENT mode's proxy networking isn't implemented yet, so punishment "
+                    + "enforcement is disabled here until warden.mode is set back to 'host'.");
             return;
         }
 

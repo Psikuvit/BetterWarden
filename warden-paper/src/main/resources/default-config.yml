@@ -5,6 +5,11 @@ warden:
 
   server-name: "My Server"
 
+  # host | client. client skips booting this server's own core - only meaningful
+  # behind a Stage 3 proxy, and CLIENT mode's networking isn't implemented yet,
+  # so setting this to client currently just disables punishment enforcement here.
+  mode: host
+
   storage:
     # sqlite | mysql (mysql not wired up yet)
     type: sqlite

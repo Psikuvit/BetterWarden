@@ -38,7 +38,7 @@ public class BanGateListener implements Listener {
         }
         Punishment p = ban.get();
         String duration = p.isPermanent() ? lang.get("punish.permanent") : lang.get("punish.until", p.getExpiresAt());
-        String message = lang.get("gate.banned", p.getReason(), duration);
+        String message = lang.get("gate.banned", p.getReason(), service.resolveStaffName(p), duration, p.getId());
         event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, miniMessage.deserialize(message));
     }
 }
