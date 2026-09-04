@@ -2,11 +2,15 @@ package me.psikuvit.betterWarden.core.panel.auth;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -30,11 +34,25 @@ import org.springframework.http.HttpStatus;
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /** PanelRole (docs/spec/04-PANEL.txt §3) is a strict ladder - OWNER outranks ADMIN outranks
+     * MODERATOR outranks VIEWER - so @PreAuthorize("hasRole('MODERATOR')") should also admit
+     * ADMIN/OWNER, not just an exact MODERATOR match. Without this bean hasRole() only matches
+     * the literal granted authority. */
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.fromHierarchy("""
+                ROLE_OWNER > ROLE_ADMIN
+                ROLE_ADMIN > ROLE_MODERATOR
+                ROLE_MODERATOR > ROLE_VIEWER
+                """);
     }
 
     @Bean
@@ -59,14 +77,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/panel/setup/**").permitAll()
                         .requestMatchers("/api/panel/**").authenticated()
                         .anyRequest().permitAll())
-                .httpBasic(basic -> basic.disable())
-                .formLogin(form -> form.disable())
-                .logout(logout -> logout.disable()) // custom logout endpoint - see PanelAuthController
-                // Disabling formLogin/httpBasic leaves no AuthenticationEntryPoint configured,
-                // which defaults to a bare 403 for an unauthenticated request - confirmed this by
-                // actually curling /api/panel/auth/me with no session and getting 403, not the 401
-                // a REST API should return (and that the frontend's authApi.me() checks for
-                // explicitly). This is what fixes it.
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable) // custom logout endpoint - see PanelAuthController
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
 
         return http.build();

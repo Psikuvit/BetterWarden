@@ -27,19 +27,29 @@ public class PanelAuthController {
 
     private final SessionAuthenticator sessionAuthenticator;
     private final PanelUserRepository users;
+    private final LoginRateLimiter rateLimiter;
 
-    public PanelAuthController(SessionAuthenticator sessionAuthenticator, PanelUserRepository users) {
+    public PanelAuthController(SessionAuthenticator sessionAuthenticator, PanelUserRepository users, LoginRateLimiter rateLimiter) {
         this.sessionAuthenticator = sessionAuthenticator;
         this.users = users;
+        this.rateLimiter = rateLimiter;
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletRequest request, HttpServletResponse response) {
+        String ip = request.getRemoteAddr();
+        if (rateLimiter.isBlocked(ip, req.username())) {
+            long minutes = rateLimiter.remainingLockout(ip, req.username()).toMinutes() + 1;
+            return ResponseEntity.status(429).body(Map.of("error",
+                    "Too many failed attempts - try again in " + minutes + " minute(s)"));
+        }
         try {
             sessionAuthenticator.authenticateAndStartSession(req.username(), req.password(), request, response);
         } catch (BadCredentialsException e) {
+            rateLimiter.recordFailure(ip, req.username());
             return ResponseEntity.status(401).body(Map.of("error", "Invalid username or password"));
         }
+        rateLimiter.recordSuccess(ip, req.username());
 
         return users.findByUsernameIgnoreCase(req.username())
                 .map(u -> ResponseEntity.ok(PanelUserView.of(u)))
