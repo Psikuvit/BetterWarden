@@ -169,8 +169,8 @@ public final class BetterWarden extends JavaPlugin {
         IpHashingService ipHashing = new IpHashingService(rawConfig);
 
         RemotePunishmentCache cache = new RemotePunishmentCache();
-        WriteJournal journal = new WriteJournal(getDataFolder(), getLogger());
-        remoteClient = new RemoteCoreClient(h.coreUrl(), h.nodeToken(), cache, journal, getLogger());
+        WriteJournal journal = new WriteJournal(getDataFolder(), getSLF4JLogger());
+        remoteClient = new RemoteCoreClient(h.coreUrl(), h.nodeToken(), cache, journal, getSLF4JLogger());
         remoteClient.start();
 
         getServer().getPluginManager().registerEvents(new BanGateListener(cache, ipHashing, lang), this);

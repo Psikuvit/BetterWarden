@@ -9,7 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 /**
  * Append-only local log for CLIENT-mode writes that couldn't reach Core (network blip, Core
@@ -38,7 +38,7 @@ public class WriteJournal {
             Files.writeString(file.toPath(), kind + "\t" + json + System.lineSeparator(),
                     StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (Exception e) {
-            logger.severe("Could not write to the write-journal - this action may be lost: " + e.getMessage());
+            logger.error("Could not write to the write-journal - this action may be lost: " + e.getMessage());
         }
     }
 
@@ -59,7 +59,7 @@ public class WriteJournal {
                 entries.add(new Entry(line.substring(0, tab), line.substring(tab + 1)));
             }
         } catch (IOException e) {
-            logger.severe("Could not read write-journal: " + e.getMessage());
+            logger.error("Could not read write-journal: " + e.getMessage());
         }
         return entries;
     }
@@ -73,7 +73,7 @@ public class WriteJournal {
             }
             Files.writeString(file.toPath(), sb.toString(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            logger.severe("Could not rewrite write-journal after replay: " + e.getMessage());
+            logger.error("Could not rewrite write-journal after replay: " + e.getMessage());
         }
     }
 

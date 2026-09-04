@@ -15,12 +15,13 @@ import java.net.http.WebSocket;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
 
 /**
  * CLIENT mode's connection to the proxy/standalone core: REST for snapshot fetch and issuing/
@@ -82,10 +83,10 @@ public class RemoteCoreClient {
                 cache.replaceAll(all);
                 logger.info("Fetched " + all.size() + " active punishment(s) from Core.");
             } else {
-                logger.severe("Core snapshot fetch failed: HTTP " + response.statusCode());
+                logger.error("Core snapshot fetch failed: HTTP " + response.statusCode());
             }
         } catch (Exception e) {
-            logger.severe("Could not reach Core for initial snapshot - punishment checks will be empty until reconnected: " + e.getMessage());
+            logger.error("Could not reach Core for initial snapshot - punishment checks will be empty until reconnected: " + e.getMessage());
         }
     }
 
@@ -98,7 +99,7 @@ public class RemoteCoreClient {
                 cache.put(uuid, forUuid);
             }
         } catch (Exception e) {
-            logger.warning("Could not refresh punishments for " + uuid + ": " + e.getMessage());
+            logger.warn("Could not refresh punishments for " + uuid + ": " + e.getMessage());
         }
     }
 
@@ -108,6 +109,21 @@ public class RemoteCoreClient {
                 .timeout(Duration.ofSeconds(5))
                 .GET().build();
         return http.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    /** For /warden nodes on a CLIENT-mode proxy - it has no local NodeWebSocketHandler of its own. */
+    public Optional<Integer> nodeCount() {
+        try {
+            HttpResponse<String> response = get("/api/v1/nodes/count");
+            if (response.statusCode() == 200) {
+                @SuppressWarnings("unchecked")
+                Map<String, Integer> body = mapper.readValue(response.body(), Map.class);
+                return Optional.ofNullable(body.get("connected"));
+            }
+        } catch (Exception e) {
+            logger.warn("Could not fetch node count: " + e.getMessage());
+        }
+        return Optional.empty();
     }
 
     /**
@@ -146,9 +162,9 @@ public class RemoteCoreClient {
                 cache.put(dto.uuid(), List.of(dto));
                 return Optional.of(dto);
             }
-            logger.severe("Core rejected punishment issue: HTTP " + response.statusCode());
+            logger.error("Core rejected punishment issue: HTTP " + response.statusCode());
         } catch (Exception e) {
-            logger.warning("Core unreachable issuing punishment: " + e.getMessage());
+            logger.warn("Core unreachable issuing punishment: " + e.getMessage());
         }
         return Optional.empty();
     }
@@ -165,7 +181,7 @@ public class RemoteCoreClient {
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
             return response.statusCode() == 200;
         } catch (Exception e) {
-            logger.warning("Core unreachable revoking punishment: " + e.getMessage());
+            logger.warn("Core unreachable revoking punishment: " + e.getMessage());
             return false;
         }
     }
@@ -194,20 +210,20 @@ public class RemoteCoreClient {
 
                     @Override
                     public CompletionStage<?> onClose(WebSocket ws, int statusCode, String reason) {
-                        logger.warning("Lost connection to Core (WS closed: " + statusCode + " " + reason + "), reconnecting...");
+                        logger.warn("Lost connection to Core (WS closed: " + statusCode + " " + reason + "), reconnecting...");
                         scheduleReconnect();
                         return null;
                     }
 
                     @Override
                     public void onError(WebSocket ws, Throwable error) {
-                        logger.warning("Core WebSocket error: " + error.getMessage());
+                        logger.warn("Core WebSocket error: " + error.getMessage());
                         scheduleReconnect();
                     }
                 })
                 .whenComplete((ws, error) -> {
                     if (error != null) {
-                        logger.warning("Could not connect to Core's WebSocket, retrying: " + error.getMessage());
+                        logger.warn("Could not connect to Core's WebSocket, retrying: " + error.getMessage());
                         scheduleReconnect();
                         return;
                     }
@@ -225,7 +241,7 @@ public class RemoteCoreClient {
                 fetchUuid(event.uuid());
             }
         } catch (Exception e) {
-            logger.warning("Malformed node event from Core: " + e.getMessage());
+            logger.warn("Malformed node event from Core: " + e.getMessage());
         }
     }
 
@@ -255,7 +271,7 @@ public class RemoteCoreClient {
                 remaining.remove(entry);
                 journal.retain(remaining);
             } else {
-                logger.warning("Journal replay stopped - Core rejected or is unreachable again.");
+                logger.warn("Journal replay stopped - Core rejected or is unreachable again.");
                 break;
             }
         }
@@ -272,7 +288,7 @@ public class RemoteCoreClient {
                 return tryRevoke(id, req);
             }
         } catch (Exception e) {
-            logger.severe("Could not replay journal entry (" + entry.kind() + "): " + e.getMessage());
+            logger.error("Could not replay journal entry (" + entry.kind() + "): " + e.getMessage());
         }
         return false;
     }
