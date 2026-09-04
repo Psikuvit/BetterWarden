@@ -3,17 +3,12 @@ package me.psikuvit.betterWarden.core.panel.auth;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
-import me.psikuvit.betterWarden.core.model.PanelUser;
 import me.psikuvit.betterWarden.core.repo.PanelUserRepository;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,38 +25,24 @@ public class PanelAuthController {
     public record LoginRequest(String username, String password) {
     }
 
-    public record UserView(String username, String role, boolean mustChangePassword) {
-        static UserView of(PanelUser u) {
-            return new UserView(u.getUsername(), u.getRole().name(), u.isMustChangePassword());
-        }
-    }
-
-    private final AuthenticationManager authenticationManager;
+    private final SessionAuthenticator sessionAuthenticator;
     private final PanelUserRepository users;
-    private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
 
-    public PanelAuthController(AuthenticationManager authenticationManager, PanelUserRepository users) {
-        this.authenticationManager = authenticationManager;
+    public PanelAuthController(SessionAuthenticator sessionAuthenticator, PanelUserRepository users) {
+        this.sessionAuthenticator = sessionAuthenticator;
         this.users = users;
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest req, HttpServletRequest request, HttpServletResponse response) {
-        Authentication authRequest = UsernamePasswordAuthenticationToken.unauthenticated(req.username(), req.password());
-        Authentication result;
         try {
-            result = authenticationManager.authenticate(authRequest);
+            sessionAuthenticator.authenticateAndStartSession(req.username(), req.password(), request, response);
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid username or password"));
         }
 
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(result);
-        SecurityContextHolder.setContext(context);
-        securityContextRepository.saveContext(context, request, response);
-
         return users.findByUsernameIgnoreCase(req.username())
-                .map(u -> ResponseEntity.ok(UserView.of(u)))
+                .map(u -> ResponseEntity.ok(PanelUserView.of(u)))
                 .orElseGet(() -> ResponseEntity.status(401).build());
     }
 
@@ -76,18 +57,26 @@ public class PanelAuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserView> me(Authentication authentication) {
+    public ResponseEntity<PanelUserView> me(Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(401).build();
         }
         return users.findByUsernameIgnoreCase(authentication.getName())
-                .map(u -> ResponseEntity.ok(UserView.of(u)))
+                .map(u -> ResponseEntity.ok(PanelUserView.of(u)))
                 .orElseGet(() -> ResponseEntity.status(401).build());
     }
 
-    /** No-op endpoint - GETting it (permitAll) is enough to make Spring Security issue the XSRF-TOKEN cookie for the SPA to read. */
+    /**
+     * GETting this (permitAll) is what makes Spring Security issue the XSRF-TOKEN cookie for the
+     * SPA to read - but only because the CsrfToken parameter forces it to actually resolve.
+     * Spring Security 6.4+ made the token lazy/deferred by default: a handler that never touches
+     * it (this used to just return 204 with no parameter at all) never triggers
+     * CookieCsrfTokenRepository.saveToken(), so no cookie is ever written. Caught this by
+     * actually curling the endpoint and finding no Set-Cookie header, not from reading a changelog.
+     */
     @GetMapping("/csrf")
-    public ResponseEntity<Void> csrf() {
+    public ResponseEntity<Void> csrf(CsrfToken csrfToken) {
+        csrfToken.getToken();
         return ResponseEntity.noContent().build();
     }
 }
