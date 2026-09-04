@@ -1,0 +1,58 @@
+# BetterWarden configuration (Spigot).
+
+warden:
+  config-version: 1
+
+  server-name: "My Server"
+
+  # host | client. host boots this server's own embedded core (default). client connects to an
+  # external core instead (e.g. a proxy's embedded core, or a warden-standalone deployment) and
+  # never boots a local database - a proxy handshake must be cached first (join once through it
+  # while this server is still in host mode) before client mode has anywhere to connect to.
+  mode: host
+
+  storage:
+    # sqlite | mysql
+    type: sqlite
+    mysql:
+      host: localhost
+      port: 3306
+      database: warden
+      username: warden
+      password: ""
+
+  panel:
+    port: 8095
+    # Set to "127.0.0.1" once a reverse proxy on this same machine is the
+    # only intended way in. Leave blank to bind all interfaces.
+    bind-address: ""
+    # Only turn this on if a reverse proxy or tunnel (nginx/Caddy/Cloudflare
+    # Tunnel) is the sole way in - see docs/deployment. If this panel is ever
+    # reachable directly, leave it false: X-Forwarded-* headers are otherwise
+    # spoofable by any client.
+    trust-forwarded-headers: false
+
+  login-gate:
+    fail-open: true
+
+  alt-detection:
+    ban-evasion-auto-action: false
+
+  maintenance:
+    report-auto-close-hours: 72
+    ticket-auto-close-hours: 168
+
+  # ChatFilterService boots regardless (it's a core Spring bean), but this pass doesn't wire a
+  # Spigot chat listener to it yet - see PLAN.md for what's deferred on this platform.
+  chat-filter:
+    enabled: true
+    blocked-words: []
+    ad-detection: true
+    caps-threshold-percent: 70
+    caps-min-length: 10
+    spam-message-limit: 5
+    spam-window-seconds: 8
+    repeat-message-limit: 3
+    auto-punish-threshold: 5
+    auto-punish-window-minutes: 10
+    auto-punish-duration-minutes: 30

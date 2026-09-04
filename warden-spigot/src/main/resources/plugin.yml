@@ -1,0 +1,61 @@
+name: BetterWarden
+version: '${version}'
+main: me.psikuvit.betterWarden.WardenSpigotPlugin
+api-version: '1.20'
+author: psikuvit
+
+# Unlike Paper's dynamic Brigadier registration (warden-paper's paper-plugin.yml needs none of
+# this), plain Spigot commands must be declared statically here - the executor is still set
+# programmatically in onEnable() based on warden.mode (HOST gets the full set via
+# PunishmentCommands, CLIENT gets the smaller set via RemotePunishmentCommands - see
+# WardenSpigotPlugin). CLIENT mode never sets an executor for sban/skick/smute/ipban, so those
+# fall back to Bukkit's default "Unknown command" handling if used there.
+commands:
+  ban:
+    description: Ban a player
+    usage: /<command> <player> [reason]
+    permission: warden.ban
+  sban:
+    description: Silently ban a player
+    usage: /<command> <player> [reason]
+    permission: warden.ban
+  tempban:
+    description: Temporarily ban a player
+    usage: /<command> <player> <duration> [reason]
+    permission: warden.ban
+  ipban:
+    description: IP-ban a player
+    usage: /<command> <player> [reason]
+    permission: warden.ban
+  kick:
+    description: Kick a player
+    usage: /<command> <player> [reason]
+    permission: warden.kick
+  skick:
+    description: Silently kick a player
+    usage: /<command> <player> [reason]
+    permission: warden.kick
+  mute:
+    description: Mute a player
+    usage: /<command> <player> [reason]
+    permission: warden.mute
+  smute:
+    description: Silently mute a player
+    usage: /<command> <player> [reason]
+    permission: warden.mute
+  tempmute:
+    description: Temporarily mute a player
+    usage: /<command> <player> <duration> [reason]
+    permission: warden.mute
+  warn:
+    description: Warn a player
+    usage: /<command> <player> [reason]
+    permission: warden.warn
+  unban:
+    description: Unban a player
+    usage: /<command> <player> [reason]
+    permission: warden.ban
+  unmute:
+    description: Unmute a player
+    usage: /<command> <player> [reason]
+    permission: warden.mute

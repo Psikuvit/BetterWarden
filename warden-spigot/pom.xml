@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>me.psikuvit</groupId>
+        <artifactId>betterwarden-parent</artifactId>
+        <version>1.0</version>
+    </parent>
+
+    <artifactId>warden-spigot</artifactId>
+    <packaging>jar</packaging>
+
+    <name>warden-spigot</name>
+    <description>Plain Spigot (non-Paper) backend plugin - a separate module from warden-paper, not a variant: no Brigadier (legacy CommandExecutor + plugin.yml), no native Adventure (adventure-platform-bukkit), no Folia. Ships the core moderation surface only this pass - see PLAN.md for what's deferred.</description>
+
+    <build>
+        <finalName>BetterWarden-Spigot</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <minimizeJar>false</minimizeJar>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>**/module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.yaml.snakeyaml</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.snakeyaml</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google.common</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.guava</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google.gson</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.gson</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>io.netty</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.netty</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.slf4j</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.slf4j</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.fasterxml.jackson</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.jackson</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>tools.jackson</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.toolsjackson</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.commons</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.commons</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <!-- Adventure has no native runtime presence on plain Spigot (unlike Paper, which bundles it) - must ship our own. -->
+                                    <pattern>net.kyori</pattern>
+                                    <shadedPattern>me.psikuvit.betterWarden.libs.kyori</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/spring.factories</resource>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</resource>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <excludes>
+                    <exclude>default-config.yml</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>default-config.yml</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <!-- Pinned to one literal deployed snapshot build (same reasoning as warden-paper's
+                 pinned paper-api build string) rather than the floating "-SNAPSHOT" version -
+                 Maven's snapshot metadata resolution against repo.papermc.io didn't resolve
+                 cleanly even though the exact jar is fetchable directly. -->
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>26.2-R0.1-20260816.205300-12</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <!-- No native Adventure on Spigot at all, unlike Paper - this bridges MiniMessage output to Player#sendMessage. -->
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-platform-bukkit</artifactId>
+            <version>4.4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-minimessage</artifactId>
+            <version>4.21.0</version>
+        </dependency>
+        <dependency>
+            <!-- JavaPlugin#getLogger() returns java.util.logging.Logger, not SLF4J (confirmed via
+                 javap - no getSLF4JLogger() default method on Spigot's JavaPlugin, unlike Paper's) -
+                 binds org.slf4j.LoggerFactory to JUL so RemoteCoreClient/WriteJournal's Logger param
+                 works unchanged in CLIENT mode. -->
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>2.0.18</version>
+        </dependency>
+
+        <dependency>
+            <groupId>me.psikuvit</groupId>
+            <artifactId>warden-core</artifactId>
+        </dependency>
+    </dependencies>
+</project>
