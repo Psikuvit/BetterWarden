@@ -16,4 +16,6 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     List<Ticket> findByAssigneeAndStatusNotOrderByCreatedAtDesc(String assignee, TicketStatus excludedStatus);
 
     List<Ticket> findByStatusAndCreatedAtBefore(TicketStatus status, Instant cutoff);
+
+    long countByStatusNot(TicketStatus status);
 }
