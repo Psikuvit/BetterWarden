@@ -10,8 +10,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.http.HttpStatus;
 
 /**
  * Two completely separate auth layers coexist here on purpose:
@@ -54,11 +56,18 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/**", "/ws/nodes", "/health").permitAll()
                         .requestMatchers("/api/panel/auth/login", "/api/panel/auth/csrf").permitAll()
+                        .requestMatchers("/api/panel/setup/**").permitAll()
                         .requestMatchers("/api/panel/**").authenticated()
                         .anyRequest().permitAll())
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
-                .logout(logout -> logout.disable()); // custom logout endpoint - see PanelAuthController
+                .logout(logout -> logout.disable()) // custom logout endpoint - see PanelAuthController
+                // Disabling formLogin/httpBasic leaves no AuthenticationEntryPoint configured,
+                // which defaults to a bare 403 for an unauthenticated request - confirmed this by
+                // actually curling /api/panel/auth/me with no session and getting 403, not the 401
+                // a REST API should return (and that the frontend's authApi.me() checks for
+                // explicitly). This is what fixes it.
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)));
 
         return http.build();
     }
