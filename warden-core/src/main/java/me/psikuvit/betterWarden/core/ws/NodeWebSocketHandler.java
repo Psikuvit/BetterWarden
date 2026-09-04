@@ -48,6 +48,16 @@ public class NodeWebSocketHandler extends TextWebSocketHandler {
         return sessions.size();
     }
 
+    /**
+     * Pushes a punishment-changed notice without going through the local EventBus - used by
+     * warden-standalone's RedisPublisher for updates that originated on ANOTHER core replica.
+     * Going through EventBus there would re-trigger RedisPublisher's own outbound forward and
+     * ping-pong the update back and forth between replicas forever.
+     */
+    public void broadcastPunishmentChanged(String uuid) {
+        broadcast(NodeEvent.punishmentChanged(uuid));
+    }
+
     private void broadcast(NodeEvent event) {
         String json;
         try {

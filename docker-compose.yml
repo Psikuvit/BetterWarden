@@ -1,0 +1,63 @@
+services:
+  core:
+    build:
+      context: .
+      dockerfile: warden-standalone/Dockerfile
+    restart: unless-stopped
+    environment:
+      WARDEN_HOME: /data
+      WARDEN_DB_HOST: mysql
+      WARDEN_DB_PORT: "3306"
+      WARDEN_DB_NAME: ${MYSQL_DATABASE:-warden}
+      WARDEN_DB_USER: ${MYSQL_USER:-warden}
+      WARDEN_DB_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+    ports:
+      - "${WARDEN_PANEL_PORT:-8095}:8095"
+    volumes:
+      - warden-data:/data
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8095/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-warden}
+      MYSQL_USER: ${MYSQL_USER:-warden}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  warden-data:
+  mysql-data:
+  redis-data:

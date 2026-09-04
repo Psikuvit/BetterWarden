@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>me.psikuvit</groupId>
+        <artifactId>betterwarden-parent</artifactId>
+        <version>1.0</version>
+    </parent>
+
+    <artifactId>warden-standalone</artifactId>
+    <packaging>jar</packaging>
+
+    <name>warden-standalone</name>
+    <description>Stage 4: standalone core for Docker/the Network tier - no Bukkit/Velocity, just warden-core behind a plain main().</description>
+
+    <build>
+        <finalName>warden-standalone</finalName>
+        <plugins>
+            <plugin>
+                <!-- No shading needed here (unlike warden-paper/velocity) - there's no host
+                     application classloader to avoid colliding with, so the standard Spring Boot
+                     repackage (proper Main-Class, nested-jar layout) is the right tool. -->
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>me.psikuvit</groupId>
+            <artifactId>warden-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+    </dependencies>
+</project>
