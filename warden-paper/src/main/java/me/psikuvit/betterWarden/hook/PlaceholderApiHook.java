@@ -4,6 +4,8 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * %warden_punishments%, %warden_muted%, %warden_staff_rank%. Only constructed after confirming
@@ -24,17 +26,17 @@ public class PlaceholderApiHook extends PlaceholderExpansion {
     }
 
     @Override
-    public String getIdentifier() {
+    public @NonNull String getIdentifier() {
         return "warden";
     }
 
     @Override
-    public String getAuthor() {
+    public @NonNull String getAuthor() {
         return "psikuvit";
     }
 
     @Override
-    public String getVersion() {
+    public @NonNull String getVersion() {
         return "1.0";
     }
 
@@ -44,8 +46,8 @@ public class PlaceholderApiHook extends PlaceholderExpansion {
     }
 
     @Override
-    public String onRequest(OfflinePlayer player, String params) {
-        if (player == null || player.getUniqueId() == null) {
+    public @Nullable String onRequest(OfflinePlayer player, @NonNull String params) {
+        if (player == null) {
             return "";
         }
         return switch (params) {
