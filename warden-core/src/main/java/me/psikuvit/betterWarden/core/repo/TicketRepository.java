@@ -18,4 +18,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     List<Ticket> findByStatusAndCreatedAtBefore(TicketStatus status, Instant cutoff);
 
     long countByStatusNot(TicketStatus status);
+
+    /** StatsService's response-time and per-staff rollups - fetched raw, computed in Java (see DashboardController's activity chart for why). */
+    List<Ticket> findByCreatedAtAfter(Instant cutoff);
 }
