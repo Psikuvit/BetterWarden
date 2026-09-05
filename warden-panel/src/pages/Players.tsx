@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import PlayerHead from '../components/PlayerHead'
 import { playersApi, type SearchResult } from '../api/players'
 import './Panel.css'
 
@@ -47,7 +48,7 @@ export default function Players() {
       <div className="player-grid">
         {results.map((p) => (
           <Link key={p.uuid} to={`/players/${p.uuid}`} className="card player-card">
-            <span className="player-avatar" />
+            <PlayerHead uuid={p.uuid} size={40} />
             <div>
               <div className="player-card-name">{p.name}</div>
               <div className="player-card-meta">Last seen {new Date(p.lastSeen).toLocaleString()}</div>

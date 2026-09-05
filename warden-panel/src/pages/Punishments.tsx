@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import PlayerHead from '../components/PlayerHead'
 import { punishmentsApi, type PunishmentRow, type BrowseFilters } from '../api/punishments'
 import './Panel.css'
 
@@ -161,7 +162,7 @@ function PunishmentRowView({ row }: { row: PunishmentRow }) {
     <tr onClick={() => navigate(`/punishments/${row.id}`)}>
       <td>
         <div className="player-cell">
-          <span className="player-avatar" />
+          <PlayerHead uuid={row.playerUuid} size={24} />
           {row.playerName}
         </div>
       </td>

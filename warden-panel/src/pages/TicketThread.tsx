@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import PlayerHead from '../components/PlayerHead'
 import { ticketsApi, type TicketThread as Thread } from '../api/tickets'
 import './Panel.css'
 
@@ -67,7 +68,12 @@ export default function TicketThread() {
             {messages.length === 0 && <p className="muted">No messages yet.</p>}
             {messages.map((m) => (
               <div key={m.id} className={`message ${m.internal ? 'internal' : m.author !== ticket.openerUuid ? 'staff' : ''}`}>
-                <div className="msg-avatar" />
+                {/* "CONSOLE" (panel/console-issued messages) has no Minecraft account/skin to render. */}
+                {m.author === 'CONSOLE' ? (
+                  <div className="msg-avatar" />
+                ) : (
+                  <PlayerHead uuid={m.author} size={30} className="msg-avatar" />
+                )}
                 <div>
                   <div className="msg-bubble">{m.body}</div>
                   <div className="msg-meta">

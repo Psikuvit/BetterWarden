@@ -18,7 +18,7 @@ table.data-table { width: 100%; border-collapse: collapse; }
 .data-table tbody tr:hover td { background: var(--bg-hover); }
 .data-table tbody tr { cursor: pointer; }
 .player-cell { display: flex; align-items: center; gap: 10px; }
-.player-avatar { width: 24px; height: 24px; border-radius: 5px; background: var(--bg-hover); border: 1px solid var(--border); flex-shrink: 0; }
+.player-avatar { width: 24px; height: 24px; border-radius: 5px; background: var(--bg-hover); border: 1px solid var(--border); flex-shrink: 0; object-fit: cover; image-rendering: pixelated; }
 .mono { font-family: ui-monospace, monospace; font-size: 0.8rem; }
 
 .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
@@ -68,7 +68,7 @@ dl.meta dd { margin: 0; font-size: 0.88rem; }
 .player-card-meta { font-size: 0.75rem; color: var(--text-muted); }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
 
-.skin-render { width: 64px; height: 64px; border-radius: 10px; background: linear-gradient(135deg, #2b3040, #171a21); border: 1px solid var(--border); flex-shrink: 0; }
+.skin-render { width: 64px; height: 64px; border-radius: 10px; background: linear-gradient(135deg, #2b3040, #171a21); border: 1px solid var(--border); flex-shrink: 0; object-fit: cover; image-rendering: pixelated; }
 .profile-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
 .profile-name { font-size: 1.5rem; font-weight: 700; }
 .profile-meta { font-size: 0.8rem; color: var(--text-muted); }
@@ -121,7 +121,7 @@ dl.meta dd { margin: 0; font-size: 0.88rem; }
 .message-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
 .message { display: flex; gap: 10px; max-width: 80%; }
 .message.staff { margin-left: auto; flex-direction: row-reverse; }
-.msg-avatar { width: 30px; height: 30px; border-radius: 7px; background: var(--bg-hover); border: 1px solid var(--border); flex-shrink: 0; }
+.msg-avatar { width: 30px; height: 30px; border-radius: 7px; background: var(--bg-hover); border: 1px solid var(--border); flex-shrink: 0; object-fit: cover; image-rendering: pixelated; }
 .msg-bubble { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 0.85rem; white-space: pre-wrap; }
 .message.staff .msg-bubble { background: rgba(91, 140, 255, 0.12); border-color: rgba(91, 140, 255, 0.3); }
 .message.internal .msg-bubble { background: rgba(245, 165, 36, 0.1); border-color: rgba(245, 165, 36, 0.3); border-style: dashed; }

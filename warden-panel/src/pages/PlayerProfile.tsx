@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import PlayerHead from '../components/PlayerHead'
 import { playersApi, type PlayerProfile as Profile } from '../api/players'
 import './Panel.css'
 
@@ -47,7 +48,7 @@ export default function PlayerProfile() {
         <Link to="/players">Players</Link> / {profile.name}
       </div>
       <div className="profile-header">
-        <span className="skin-render" />
+        <PlayerHead uuid={profile.uuid} size={64} className="skin-render" />
         <div>
           <div className="profile-name">{profile.name}</div>
           <div className="profile-meta">
@@ -91,7 +92,7 @@ export default function PlayerProfile() {
           </div>
           <div className="card">
             <h2>Chat log</h2>
-            <div className="coming-soon-tab">Chat log viewer with filter-hit highlighting - planned for v1.1, not built yet.</div>
+            <div className="coming-soon-tab">Not available yet.</div>
           </div>
         </div>
 
