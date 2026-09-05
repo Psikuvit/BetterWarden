@@ -29,7 +29,7 @@ export default function Dashboard() {
         <StatCard label="Online players" value={data.onlinePlayers} />
         <StatCard label="Open reports" value={data.openReports} />
         <StatCard label="Open tickets" value={data.openTickets} />
-        <StatCard label="Pending appeals" value={data.pendingAppeals} note="not built yet" />
+        <StatCard label="Pending appeals" value={data.pendingAppeals} />
         <StatCard label="Active bans" value={data.activeBans} />
         <StatCard label="Active mutes" value={data.activeMutes} />
         <StatCard label="Connected nodes" value={data.connectedNodes} />

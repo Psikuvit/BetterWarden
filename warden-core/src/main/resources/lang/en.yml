@@ -78,7 +78,7 @@ admin:
   setup-code-header: "<white>=== Panel setup ==="
   setup-code-url: "<gray>Panel: <white>http://localhost:{0}"
   setup-code-value: "<gray>Code: <white>{0}</white> <gray>(30 min, single use)"
-  panel-url: "<gray>Panel: <white>{0}</white> (Stage 5 - not built yet, this is just the configured address)"
+  panel-url: "<gray>Panel: <white>{0}</white>"
   nodes-connected: "<gray>{0} node(s) connected to this proxy's core."
 
 report:

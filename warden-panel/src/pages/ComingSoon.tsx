@@ -7,7 +7,7 @@ export default function ComingSoon({ title }: ComingSoonProps) {
   return (
     <div>
       <h1>{title}</h1>
-      <p className="muted">Not built yet - see docs/spec/04-PANEL.txt and PLAN.md Stage 5.</p>
+      <p className="muted">This page isn't available yet.</p>
     </div>
   )
 }
