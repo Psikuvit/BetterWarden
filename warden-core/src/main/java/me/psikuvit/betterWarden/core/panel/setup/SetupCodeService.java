@@ -24,7 +24,7 @@ public class SetupCodeService {
     }
 
     public synchronized boolean verify(String presented) {
-        return code != null && expiresAt != null
+        return expiresAt != null
                 && presented != null && presented.equalsIgnoreCase(code)
                 && Instant.now().isBefore(expiresAt);
     }

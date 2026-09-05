@@ -47,7 +47,7 @@ public class ChatFilterQueueController {
 
     @PostMapping("/queue/{id}/review")
     @PreAuthorize("hasRole('MODERATOR')")
-    public ResponseEntity<Void> review(@PathVariable("id") Long id, Authentication authentication) {
+    public ResponseEntity<Void> review(@PathVariable Long id, Authentication authentication) {
         return filteredMessages.findById(id).map(m -> {
             m.setReviewed(true);
             m.setReviewedBy(authentication.getName());
