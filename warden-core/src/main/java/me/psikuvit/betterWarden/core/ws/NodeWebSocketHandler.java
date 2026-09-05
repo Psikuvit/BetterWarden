@@ -1,5 +1,6 @@
 package me.psikuvit.betterWarden.core.ws;
 
+import org.jspecify.annotations.NonNull;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import me.psikuvit.betterWarden.core.event.EventBus;
@@ -32,13 +33,13 @@ public class NodeWebSocketHandler extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) {
+    public void afterConnectionEstablished(@NonNull WebSocketSession session) {
         sessions.add(session);
         log.info("Node connected: {}", session.getId());
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+    public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
         sessions.remove(session);
         log.info("Node disconnected: {} ({})", session.getId(), status);
     }

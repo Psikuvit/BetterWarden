@@ -2,6 +2,7 @@ package me.psikuvit.betterWarden.core.panel.auth;
 
 import me.psikuvit.betterWarden.core.model.PanelUser;
 import me.psikuvit.betterWarden.core.repo.PanelUserRepository;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -18,7 +19,7 @@ public class PanelUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(@NonNull String username) throws UsernameNotFoundException {
         PanelUser user = users.findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new UsernameNotFoundException(username));
         return User.builder()
