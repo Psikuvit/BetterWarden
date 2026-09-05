@@ -78,15 +78,15 @@ public class RemoteCoreClient {
         try {
             HttpResponse<String> response = get("/api/v1/punishments/active");
             if (response.statusCode() == 200) {
-                List<PunishmentDto> all = mapper.readValue(response.body(), new TypeReference<List<PunishmentDto>>() {
+                List<PunishmentDto> all = mapper.readValue(response.body(), new TypeReference<>() {
                 });
                 cache.replaceAll(all);
-                logger.info("Fetched " + all.size() + " active punishment(s) from Core.");
+                logger.info("Fetched {} active punishment(s) from Core.", all.size());
             } else {
-                logger.error("Core snapshot fetch failed: HTTP " + response.statusCode());
+                logger.error("Core snapshot fetch failed: HTTP {}", response.statusCode());
             }
         } catch (Exception e) {
-            logger.error("Could not reach Core for initial snapshot - punishment checks will be empty until reconnected: " + e.getMessage());
+            logger.error("Could not reach Core for initial snapshot - punishment checks will be empty until reconnected: {}", e.getMessage());
         }
     }
 
@@ -94,12 +94,12 @@ public class RemoteCoreClient {
         try {
             HttpResponse<String> response = get("/api/v1/punishments/by-uuid/" + uuid);
             if (response.statusCode() == 200) {
-                List<PunishmentDto> forUuid = mapper.readValue(response.body(), new TypeReference<List<PunishmentDto>>() {
+                List<PunishmentDto> forUuid = mapper.readValue(response.body(), new TypeReference<>() {
                 });
                 cache.put(uuid, forUuid);
             }
         } catch (Exception e) {
-            logger.warn("Could not refresh punishments for " + uuid + ": " + e.getMessage());
+            logger.warn("Could not refresh punishments for {}: {}", uuid, e.getMessage());
         }
     }
 
@@ -121,7 +121,7 @@ public class RemoteCoreClient {
                 return Optional.ofNullable(body.get("connected"));
             }
         } catch (Exception e) {
-            logger.warn("Could not fetch node count: " + e.getMessage());
+            logger.warn("Could not fetch node count: {}", e.getMessage());
         }
         return Optional.empty();
     }
@@ -162,9 +162,9 @@ public class RemoteCoreClient {
                 cache.put(dto.uuid(), List.of(dto));
                 return Optional.of(dto);
             }
-            logger.error("Core rejected punishment issue: HTTP " + response.statusCode());
+            logger.error("Core rejected punishment issue: HTTP {}", response.statusCode());
         } catch (Exception e) {
-            logger.warn("Core unreachable issuing punishment: " + e.getMessage());
+            logger.warn("Core unreachable issuing punishment: {}", e.getMessage());
         }
         return Optional.empty();
     }
@@ -181,7 +181,7 @@ public class RemoteCoreClient {
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
             return response.statusCode() == 200;
         } catch (Exception e) {
-            logger.warn("Core unreachable revoking punishment: " + e.getMessage());
+            logger.warn("Core unreachable revoking punishment: {}", e.getMessage());
             return false;
         }
     }
@@ -210,20 +210,20 @@ public class RemoteCoreClient {
 
                     @Override
                     public CompletionStage<?> onClose(WebSocket ws, int statusCode, String reason) {
-                        logger.warn("Lost connection to Core (WS closed: " + statusCode + " " + reason + "), reconnecting...");
+                        logger.warn("Lost connection to Core (WS closed: {} {}), reconnecting...", statusCode, reason);
                         scheduleReconnect();
                         return null;
                     }
 
                     @Override
                     public void onError(WebSocket ws, Throwable error) {
-                        logger.warn("Core WebSocket error: " + error.getMessage());
+                        logger.warn("Core WebSocket error: {}", error.getMessage());
                         scheduleReconnect();
                     }
                 })
                 .whenComplete((ws, error) -> {
                     if (error != null) {
-                        logger.warn("Could not connect to Core's WebSocket, retrying: " + error.getMessage());
+                        logger.warn("Could not connect to Core's WebSocket, retrying: {}", error.getMessage());
                         scheduleReconnect();
                         return;
                     }
@@ -241,7 +241,7 @@ public class RemoteCoreClient {
                 fetchUuid(event.uuid());
             }
         } catch (Exception e) {
-            logger.warn("Malformed node event from Core: " + e.getMessage());
+            logger.warn("Malformed node event from Core: {}", e.getMessage());
         }
     }
 
@@ -263,7 +263,7 @@ public class RemoteCoreClient {
         if (entries.isEmpty()) {
             return;
         }
-        logger.info("Replaying " + entries.size() + " journaled write(s)...");
+        logger.info("Replaying {} journaled write(s)...", entries.size());
         List<WriteJournal.Entry> remaining = new ArrayList<>(entries);
         for (WriteJournal.Entry entry : entries) {
             boolean ok = replayEntry(entry);
@@ -288,7 +288,7 @@ public class RemoteCoreClient {
                 return tryRevoke(id, req);
             }
         } catch (Exception e) {
-            logger.error("Could not replay journal entry (" + entry.kind() + "): " + e.getMessage());
+            logger.error("Could not replay journal entry ({}): {}", entry.kind(), e.getMessage(), e);
         }
         return false;
     }
