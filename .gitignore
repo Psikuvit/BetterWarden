@@ -10,6 +10,9 @@ warden-core/src/main/resources/static/*
 
 # User-specific stuff
 .idea/
+docs/
+PLAN.md
+warden-core/src/main/resources/db/migration/
 
 *.iml
 *.ipr
