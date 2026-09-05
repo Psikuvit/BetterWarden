@@ -13,6 +13,8 @@ warden-core/src/main/resources/static/*
 docs/
 PLAN.md
 warden-core/src/main/resources/db/migration/
+designs/
+warden-panel/src/assets/designs/
 
 *.iml
 *.ipr
