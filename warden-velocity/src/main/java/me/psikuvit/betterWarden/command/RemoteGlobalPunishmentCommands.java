@@ -36,14 +36,15 @@ public final class RemoteGlobalPunishmentCommands {
         this.lang = lang;
     }
 
-    public static void register(ProxyServer server, RemoteCoreClient client, RemotePunishmentCache cache, LangService lang) {
+    public static void register(Object plugin, ProxyServer server, RemoteCoreClient client, RemotePunishmentCache cache, LangService lang) {
         RemoteGlobalPunishmentCommands commands = new RemoteGlobalPunishmentCommands(server, client, cache, lang);
         CommandManager manager = server.getCommandManager();
-        manager.register(manager.metaBuilder("gban").plugin(commands).build(),
+
+        manager.register(manager.metaBuilder("gban").plugin(plugin).build(),
                 commands.punish(PunishmentType.BAN, "warden.ban"));
-        manager.register(manager.metaBuilder("gmute").plugin(commands).build(),
+        manager.register(manager.metaBuilder("gmute").plugin(plugin).build(),
                 commands.punish(PunishmentType.MUTE, "warden.mute"));
-        manager.register(manager.metaBuilder("gkick").plugin(commands).build(),
+        manager.register(manager.metaBuilder("gkick").plugin(plugin).build(),
                 commands.punish(PunishmentType.KICK, "warden.kick"));
     }
 

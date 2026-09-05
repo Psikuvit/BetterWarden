@@ -20,10 +20,11 @@ public final class WardenProxyCommands {
 
     private static final String PERMISSION = "warden.admin";
 
-    public static void register(ProxyServer server, LangService lang, Supplier<String> panelUrl,
+    public static void register(Object plugin, ProxyServer server, LangService lang, Supplier<String> panelUrl,
                                  Supplier<Optional<Integer>> nodeCount, Supplier<String> setupCode) {
         CommandManager manager = server.getCommandManager();
-        manager.register(manager.metaBuilder("warden").plugin(WardenProxyCommands.class).build(), new SimpleCommand() {
+
+        manager.register(manager.metaBuilder("warden").plugin(plugin).build(), new SimpleCommand() {
             @Override
             public boolean hasPermission(Invocation invocation) {
                 return invocation.source().hasPermission(PERMISSION);

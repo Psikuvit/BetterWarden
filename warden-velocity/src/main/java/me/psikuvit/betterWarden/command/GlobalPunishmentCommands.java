@@ -35,15 +35,16 @@ public final class GlobalPunishmentCommands {
         this.lang = lang;
     }
 
-    public static void register(ProxyServer server, PlayerRepository players,
+    public static void register(Object plugin, ProxyServer server, PlayerRepository players,
                                  PunishmentService punishmentService, LangService lang) {
         GlobalPunishmentCommands commands = new GlobalPunishmentCommands(server, players, punishmentService, lang);
         CommandManager manager = server.getCommandManager();
-        manager.register(manager.metaBuilder("gban").plugin(commands).build(),
+
+        manager.register(manager.metaBuilder("gban").plugin(plugin).build(),
                 commands.punish(PunishmentType.BAN, "warden.ban"));
-        manager.register(manager.metaBuilder("gmute").plugin(commands).build(),
+        manager.register(manager.metaBuilder("gmute").plugin(plugin).build(),
                 commands.punish(PunishmentType.MUTE, "warden.mute"));
-        manager.register(manager.metaBuilder("gkick").plugin(commands).build(),
+        manager.register(manager.metaBuilder("gkick").plugin(plugin).build(),
                 commands.punish(PunishmentType.KICK, "warden.kick"));
     }
 

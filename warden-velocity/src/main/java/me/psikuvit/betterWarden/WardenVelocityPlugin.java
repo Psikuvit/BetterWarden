@@ -118,8 +118,8 @@ public final class WardenVelocityPlugin {
         SetupCodeService setupCodeService = springContext.getBean(SetupCodeService.class);
         PanelUserRepository panelUsers = springContext.getBean(PanelUserRepository.class);
 
-        GlobalPunishmentCommands.register(server, springContext.getBean(PlayerRepository.class), punishmentService, lang);
-        WardenProxyCommands.register(server, lang,
+        GlobalPunishmentCommands.register(this, server, springContext.getBean(PlayerRepository.class), punishmentService, lang);
+        WardenProxyCommands.register(this, server, lang,
                 () -> "http://" + config.getNode().getAdvertiseHost() + ":" + config.getPanel().getPort(),
                 () -> Optional.of(nodeHub.connectedCount()),
                 () -> {
@@ -174,10 +174,10 @@ public final class WardenVelocityPlugin {
         remoteClient = new RemoteCoreClient(coreUrl, nodeToken, cache, journal, logger);
         remoteClient.start();
 
-        RemoteGlobalPunishmentCommands.register(server, remoteClient, cache, lang);
+        RemoteGlobalPunishmentCommands.register(this, server, remoteClient, cache, lang);
         // No local SetupCodeService in CLIENT mode - setup happens directly against whatever
         // core this proxy points at, not through this process.
-        WardenProxyCommands.register(server, lang, () -> coreUrl, remoteClient::nodeCount,
+        WardenProxyCommands.register(this, server, lang, () -> coreUrl, remoteClient::nodeCount,
                 () -> "<gray>Not available in CLIENT mode - use the setup wizard on the core this proxy connects to.");
         server.getEventManager().register(this, new ProxyLoginGateListener(cache, ipHashing, rawConfig, lang, logger));
 
