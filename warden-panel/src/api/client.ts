@@ -44,3 +44,8 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   })
 }
+
+/** GET from a panel endpoint - no CSRF needed, reads are exempt by Spring Security's own default. */
+export function getJson<T>(path: string): Promise<T> {
+  return request<T>(path)
+}
