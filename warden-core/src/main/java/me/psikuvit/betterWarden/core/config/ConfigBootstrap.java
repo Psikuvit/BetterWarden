@@ -41,9 +41,7 @@ public final class ConfigBootstrap {
     }
 
     public static void applyToSystemProperties(File configFile, File dataFolder) throws IOException {
-        // Makes config.yml itself a Spring property source, so CoreConfig's
-        // @ConfigurationProperties(prefix = "warden") actually binds from it.
-        System.setProperty("spring.config.additional-location", "file:" + configFile.getAbsolutePath());
+        System.setProperty("spring.config.import", configFile.toURI().toString());
 
         Map<String, Object> root;
         try (InputStream in = new FileInputStream(configFile)) {
