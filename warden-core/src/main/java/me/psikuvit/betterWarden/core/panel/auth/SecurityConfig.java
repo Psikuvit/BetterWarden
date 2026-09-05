@@ -75,6 +75,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/**", "/ws/nodes", "/health").permitAll()
                         .requestMatchers("/api/panel/auth/login", "/api/panel/auth/csrf").permitAll()
                         .requestMatchers("/api/panel/setup/**").permitAll()
+                        // Logo/accent colour - the login page and public landing page need this before anyone is authenticated.
+                        .requestMatchers("/api/panel/branding").permitAll()
                         .requestMatchers("/api/panel/**").authenticated()
                         .anyRequest().permitAll())
                 .httpBasic(AbstractHttpConfigurer::disable)

@@ -22,6 +22,7 @@ public class CoreConfig {
     private Node node = new Node();
     private ChatFilter chatFilter = new ChatFilter();
     private Discord discord = new Discord();
+    private Branding branding = new Branding();
 
     public int getConfigVersion() {
         return configVersion;
@@ -117,6 +118,14 @@ public class CoreConfig {
 
     public void setDiscord(Discord discord) {
         this.discord = discord;
+    }
+
+    public Branding getBranding() {
+        return branding;
+    }
+
+    public void setBranding(Branding branding) {
+        this.branding = branding;
     }
 
     public static class Storage {
@@ -475,6 +484,28 @@ public class CoreConfig {
             public void setDigest(String digest) {
                 this.digest = digest;
             }
+        }
+    }
+
+    /** docs/spec/04-PANEL.txt §5 DESIGN: "Server logo in the header, from config" + "single accent colour driven by a config value (buyer branding)". Both blank = the panel's own defaults (no logo image, the built-in accent). */
+    public static class Branding {
+        private String logoUrl = "";
+        private String accentColor = "";
+
+        public String getLogoUrl() {
+            return logoUrl;
+        }
+
+        public void setLogoUrl(String logoUrl) {
+            this.logoUrl = logoUrl;
+        }
+
+        public String getAccentColor() {
+            return accentColor;
+        }
+
+        public void setAccentColor(String accentColor) {
+            this.accentColor = accentColor;
         }
     }
 }

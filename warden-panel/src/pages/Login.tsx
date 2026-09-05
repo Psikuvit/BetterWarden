@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useBranding } from '../api/branding'
 import { ApiError } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import './Login.css'
 
 export default function Login() {
   const { login, setupNeeded } = useAuth()
+  const branding = useBranding()
   const navigate = useNavigate()
   const location = useLocation()
   const [username, setUsername] = useState('')
@@ -36,7 +38,8 @@ export default function Login() {
   return (
     <div className="login-page">
       <form className="card login-card" onSubmit={onSubmit}>
-        <h1>BetterWarden</h1>
+        {branding?.logoUrl && <img className="login-logo" src={branding.logoUrl} alt="" />}
+        <h1>{branding?.serverName || 'BetterWarden'}</h1>
         <p className="muted">Staff panel login</p>
 
         <label>

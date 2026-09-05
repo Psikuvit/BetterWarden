@@ -45,3 +45,11 @@ warden:
       # Channel IDs - blank means that feed is off.
       punishment-log: ""
       digest: ""
+
+  branding:
+    # Shown in the panel header and login/landing pages. Blank = no logo image, just the
+    # server name text. Must be a URL the panel's own browser can reach (an image host,
+    # your own site, etc.) - not a local file path.
+    logo-url: ""
+    # Hex colour, e.g. "#5b8cff" - blank keeps the panel's own default accent.
+    accent-color: ""

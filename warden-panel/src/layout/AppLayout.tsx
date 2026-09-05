@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useBranding } from '../api/branding'
 import { useAuth } from '../auth/AuthContext'
 import './AppLayout.css'
 
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
 
 export default function AppLayout() {
   const { user, logout } = useAuth()
+  const branding = useBranding()
   const navigate = useNavigate()
 
   async function onLogout() {
@@ -31,7 +33,10 @@ export default function AppLayout() {
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
-        <div className="app-brand">BetterWarden</div>
+        <div className="app-brand">
+          {branding?.logoUrl && <img className="app-logo" src={branding.logoUrl} alt="" />}
+          BetterWarden
+        </div>
         <nav>
           {NAV_ITEMS.map((item) => (
             <NavLink

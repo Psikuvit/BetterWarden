@@ -1,11 +1,20 @@
 import { Link } from 'react-router-dom'
+import { useBranding } from '../api/branding'
 
-// Public landing (spec: "/" - server name, logo, links). Server name/logo should come from
-// branding config once /settings exists to set it - hardcoded placeholder for now.
+// Public landing (spec: "/" - server name, logo, links).
 export default function Landing() {
+  const branding = useBranding()
+
   return (
     <div className="landing">
-      <h1>BetterWarden</h1>
+      {branding?.logoUrl && (
+        <img
+          src={branding.logoUrl}
+          alt=""
+          style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', marginBottom: 16 }}
+        />
+      )}
+      <h1>{branding?.serverName || 'BetterWarden'}</h1>
       <p className="muted">Moderation &amp; staff-ops for this network.</p>
       <nav className="landing-links">
         <Link to="/dash">Staff panel</Link>
