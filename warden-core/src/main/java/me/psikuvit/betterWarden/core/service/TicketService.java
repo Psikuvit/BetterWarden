@@ -47,6 +47,12 @@ public class TicketService {
 
     @Transactional
     public Optional<TicketMessage> reply(Long ticketId, UUID author, String body, boolean internal) {
+        return reply(ticketId, author, body, internal, MessageSource.GAME);
+    }
+
+    /** Same as the 4-arg overload, but for a caller that isn't the in-game GUI/commands (the panel replies as WEB). */
+    @Transactional
+    public Optional<TicketMessage> reply(Long ticketId, UUID author, String body, boolean internal, MessageSource source) {
         Optional<Ticket> found = tickets.findById(ticketId);
         if (found.isEmpty()) {
             return Optional.empty();
@@ -55,7 +61,7 @@ public class TicketService {
         if (ticket.getStatus() == TicketStatus.OPEN) {
             ticket.setStatus(TicketStatus.IN_PROGRESS);
         }
-        return Optional.of(addMessage(ticketId, author, body, MessageSource.GAME, internal));
+        return Optional.of(addMessage(ticketId, author, body, source, internal));
     }
 
     @Transactional

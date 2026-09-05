@@ -5,7 +5,9 @@ import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
 import me.psikuvit.betterWarden.core.model.ReportStatus;
 import me.psikuvit.betterWarden.core.model.TicketStatus;
+import me.psikuvit.betterWarden.core.model.AppealStatus;
 import me.psikuvit.betterWarden.core.platform.PlatformBridge;
+import me.psikuvit.betterWarden.core.repo.AppealRepository;
 import me.psikuvit.betterWarden.core.repo.AuditLogRepository;
 import me.psikuvit.betterWarden.core.repo.PunishmentRepository;
 import me.psikuvit.betterWarden.core.repo.ReportRepository;
@@ -37,15 +39,18 @@ public class DashboardController {
     private final PunishmentRepository punishments;
     private final AuditLogRepository auditLog;
     private final NodeWebSocketHandler nodeHub;
+    private final AppealRepository appeals;
 
     public DashboardController(PlatformBridge bridge, ReportRepository reports, TicketRepository tickets,
-                                PunishmentRepository punishments, AuditLogRepository auditLog, NodeWebSocketHandler nodeHub) {
+                                PunishmentRepository punishments, AuditLogRepository auditLog, NodeWebSocketHandler nodeHub,
+                                AppealRepository appeals) {
         this.bridge = bridge;
         this.reports = reports;
         this.tickets = tickets;
         this.punishments = punishments;
         this.auditLog = auditLog;
         this.nodeHub = nodeHub;
+        this.appeals = appeals;
     }
 
     @GetMapping("/api/panel/dashboard")
@@ -62,7 +67,7 @@ public class DashboardController {
                 tickets.countByStatusNot(TicketStatus.CLOSED),
                 punishments.countByActiveTrueAndTypeIn(List.copyOf(PunishmentType.BAN_TYPES)),
                 punishments.countByActiveTrueAndTypeIn(List.copyOf(PunishmentType.MUTE_TYPES)),
-                0, // pendingAppeals - no appeals system yet, see class doc
+                appeals.countByStatus(AppealStatus.PENDING),
                 nodeHub.connectedCount(),
                 recentActions,
                 punishmentActivity());
