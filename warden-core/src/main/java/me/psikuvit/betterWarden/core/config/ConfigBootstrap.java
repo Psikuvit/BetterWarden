@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -41,13 +42,14 @@ public final class ConfigBootstrap {
     }
 
     public static void applyToSystemProperties(File configFile, File dataFolder) throws IOException {
-        System.setProperty("spring.config.import", configFile.toURI().toString());
-
         Map<String, Object> root;
         try (InputStream in = new FileInputStream(configFile)) {
             root = new Yaml().load(in);
         }
         Map<String, Object> warden = asMap(root.get("warden"));
+
+        flattenToSystemProperties("warden", warden);
+
         Map<String, Object> storage = asMap(warden.get("storage"));
         String type = String.valueOf(storage.getOrDefault("type", "sqlite"));
 
@@ -185,6 +187,21 @@ public final class ConfigBootstrap {
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         try (Writer writer = new FileWriter(configFile, StandardCharsets.UTF_8)) {
             new Yaml(options).dump(root, writer);
+        }
+    }
+
+    /** Recurses through a parsed YAML map/list, System.setProperty-ing each leaf under a dotted (Map) / indexed (List) key - see applyToSystemProperties. */
+    private static void flattenToSystemProperties(String prefix, Object value) {
+        if (value instanceof Map<?, ?> map) {
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                flattenToSystemProperties(prefix + "." + entry.getKey(), entry.getValue());
+            }
+        } else if (value instanceof List<?> list) {
+            for (int i = 0; i < list.size(); i++) {
+                flattenToSystemProperties(prefix + "[" + i + "]", list.get(i));
+            }
+        } else if (value != null) {
+            System.setProperty(prefix, String.valueOf(value));
         }
     }
 
