@@ -15,7 +15,8 @@ public class PunishmentRevoke {
     @Column(name = "punishment_id")
     private Long punishmentId;
 
-    @Column(name = "staff_uuid", nullable = false, length = 36)
+    /** Null for a console/system-issued revoke - same convention as Punishment.staffUuid. Found via a live boot: PunishmentService.revoke() has always explicitly allowed null here, but this column was NOT NULL - any console-attributed revoke (e.g. a Discord /unban) would throw. */
+    @Column(name = "staff_uuid", length = 36)
     private String staffUuid;
 
     @Column(nullable = false, length = 512)
