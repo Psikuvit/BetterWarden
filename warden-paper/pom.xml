@@ -61,10 +61,11 @@
                                     <pattern>io.netty</pattern>
                                     <shadedPattern>me.psikuvit.betterWarden.libs.netty</shadedPattern>
                                 </relocation>
-                                <relocation>
-                                    <pattern>org.slf4j</pattern>
-                                    <shadedPattern>me.psikuvit.betterWarden.libs.slf4j</shadedPattern>
-                                </relocation>
+                                <!-- Do NOT relocate org.slf4j here: getSLF4JLogger() returns Paper's own
+                                     unrelocated org.slf4j.Logger, so relocating the type makes every call
+                                     site expect a different class than what Paper actually returns -
+                                     NoSuchMethodError at runtime (same root cause as warden-velocity's
+                                     Guice DI bug, found the same way: booting a real server). -->
                                 <relocation>
                                     <pattern>com.fasterxml.jackson</pattern>
                                     <shadedPattern>me.psikuvit.betterWarden.libs.jackson</shadedPattern>

@@ -78,7 +78,6 @@ public final class BetterWarden extends JavaPlugin {
 
         getServer().getMessenger().registerIncomingPluginChannel(this, CoreHandshake.CHANNEL_ID,
                 new CoreHandshakeListener(this, getDataFolder()));
-        CoreHandshakeListener.warnIfCached(this, getDataFolder());
 
         String mode;
         try {
@@ -92,6 +91,8 @@ public final class BetterWarden extends JavaPlugin {
             bootClientMode();
             return;
         }
+        // Only relevant once we know we're actually staying HOST - see warnIfCached's javadoc.
+        CoreHandshakeListener.warnIfCached(this, getDataFolder());
 
         PaperScheduler scheduler = new PaperScheduler(this);
 
