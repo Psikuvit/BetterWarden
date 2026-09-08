@@ -6,6 +6,7 @@ import me.psikuvit.betterWarden.core.client.RemoteCoreClient;
 import me.psikuvit.betterWarden.core.client.RemotePunishmentCache;
 import me.psikuvit.betterWarden.core.client.WriteJournal;
 import me.psikuvit.betterWarden.command.InfoCommands;
+import me.psikuvit.betterWarden.command.LinkCommands;
 import me.psikuvit.betterWarden.command.PunishmentCommands;
 import me.psikuvit.betterWarden.command.ReportCommands;
 import me.psikuvit.betterWarden.command.TicketCommands;
@@ -13,6 +14,9 @@ import me.psikuvit.betterWarden.command.WardenAdminCommands;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import me.psikuvit.betterWarden.core.config.CoreConfig;
+import me.psikuvit.betterWarden.core.config.EditionService;
+import me.psikuvit.betterWarden.core.discord.DiscordBotService;
+import me.psikuvit.betterWarden.core.discord.DiscordLinkService;
 import me.psikuvit.betterWarden.core.network.CoreHandshake;
 import me.psikuvit.betterWarden.network.CoreHandshakeListener;
 import me.psikuvit.betterWarden.core.panel.setup.SetupCodeService;
@@ -133,15 +137,21 @@ public final class BetterWarden extends JavaPlugin {
         MojangApiService mojangApi = springContext.getBean(MojangApiService.class);
         ChatFilterService chatFilter = springContext.getBean(ChatFilterService.class);
         PlatformBridge platformBridge = springContext.getBean(PlatformBridge.class);
+        EditionService edition = springContext.getBean(EditionService.class);
 
         PunishmentCommands.register(this, punishmentService, templates, lang, playerRepository, mojangApi, scheduler);
         InfoCommands.register(this, punishmentService, staffNotes, altDetection, playerTracking, templates, chatInput, lang,
-                playerRepository, mojangApi, scheduler);
+                playerRepository, mojangApi, scheduler, edition);
+        DiscordLinkService linkService = springContext.getBean(DiscordLinkService.class);
         WardenAdminCommands.register(this, templates, escalationService, coreConfig, configFile, lang,
-                springContext.getBean(SetupCodeService.class), springContext.getBean(PanelUserRepository.class));
-        ReportCommands.register(this, reportService, playerTracking, lang);
-        TicketService ticketService = springContext.getBean(TicketService.class);
-        TicketCommands.register(this, ticketService, chatInput, lang);
+                springContext.getBean(SetupCodeService.class), springContext.getBean(PanelUserRepository.class), linkService,
+                edition, springContext.getBean(DiscordBotService.class));
+        if (edition.isPaid()) {
+            ReportCommands.register(this, reportService, playerTracking, lang);
+            TicketService ticketService = springContext.getBean(TicketService.class);
+            TicketCommands.register(this, ticketService, chatInput, lang);
+            LinkCommands.register(this, linkService, lang);
+        }
 
         getServer().getPluginManager().registerEvents(new BanGateListener(punishmentService, ipHashing, lang), this);
         getServer().getPluginManager().registerEvents(new MuteGateListener(punishmentService, lang), this);

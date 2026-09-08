@@ -9,6 +9,9 @@ import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import me.psikuvit.betterWarden.core.config.CoreConfig;
+import me.psikuvit.betterWarden.core.config.EditionService;
+import me.psikuvit.betterWarden.core.discord.DiscordBotService;
+import me.psikuvit.betterWarden.core.discord.DiscordLinkService;
 import me.psikuvit.betterWarden.core.model.Escalation;
 import me.psikuvit.betterWarden.core.model.PunishmentTemplate;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
@@ -49,10 +52,14 @@ public final class WardenAdminCommands {
     private final LangService lang;
     private final SetupCodeService setupCodeService;
     private final PanelUserRepository panelUsers;
+    private final DiscordLinkService linkService;
+    private final EditionService edition;
+    private final DiscordBotService discordBot;
 
     private WardenAdminCommands(JavaPlugin plugin, PunishmentTemplateService templates, EscalationService escalationService,
                                  CoreConfig config, File configFile, LangService lang,
-                                 SetupCodeService setupCodeService, PanelUserRepository panelUsers) {
+                                 SetupCodeService setupCodeService, PanelUserRepository panelUsers, DiscordLinkService linkService,
+                                 EditionService edition, DiscordBotService discordBot) {
         this.plugin = plugin;
         this.templates = templates;
         this.escalationService = escalationService;
@@ -61,57 +68,71 @@ public final class WardenAdminCommands {
         this.lang = lang;
         this.setupCodeService = setupCodeService;
         this.panelUsers = panelUsers;
+        this.linkService = linkService;
+        this.edition = edition;
+        this.discordBot = discordBot;
     }
 
     public static void register(JavaPlugin plugin, PunishmentTemplateService templates, EscalationService escalationService,
                                  CoreConfig config, File configFile, LangService lang,
-                                 SetupCodeService setupCodeService, PanelUserRepository panelUsers) {
+                                 SetupCodeService setupCodeService, PanelUserRepository panelUsers, DiscordLinkService linkService,
+                                 EditionService edition, DiscordBotService discordBot) {
         WardenAdminCommands commands = new WardenAdminCommands(plugin, templates, escalationService, config, configFile, lang,
-                setupCodeService, panelUsers);
+                setupCodeService, panelUsers, linkService, edition, discordBot);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
-            registrar.register(
-                    literal("warden")
-                            .requires(src -> src.getSender().hasPermission(PERMISSION))
-                            .then(literal("template")
-                                    .then(literal("add")
-                                            .then(argument("key", StringArgumentType.word())
-                                                    .then(argument("type", StringArgumentType.word())
-                                                            .then(argument("duration", StringArgumentType.word())
-                                                                    .then(argument("group", StringArgumentType.word())
-                                                                            .then(argument("reason", StringArgumentType.greedyString())
-                                                                                    .executes(commands::executeAdd)))))))
-                                    .then(literal("remove")
-                                            .then(argument("key", StringArgumentType.word())
-                                                    .executes(commands::executeRemove)))
-                                    .then(literal("list")
-                                            .executes(commands::executeList)))
-                            .then(literal("escalation")
-                                    .then(literal("add")
-                                            .then(argument("group", StringArgumentType.word())
-                                                    .then(argument("offence", IntegerArgumentType.integer(1))
-                                                            .then(argument("type", StringArgumentType.word())
-                                                                    .then(argument("duration", StringArgumentType.word())
-                                                                            .executes(commands::executeEscalationAdd))))))
-                                    .then(literal("list")
-                                            .then(argument("group", StringArgumentType.word())
-                                                    .executes(commands::executeEscalationList))))
-                            .then(literal("status")
-                                    .executes(commands::executeStatus))
-                            .then(literal("reload")
-                                    .executes(commands::executeReload))
-                            .then(literal("debug")
-                                    .executes(commands::executeDebug))
-                            .then(literal("setup")
-                                    .executes(commands::executeSetup))
-                            .build(),
-                    "BetterWarden admin commands");
+            var root = literal("warden")
+                    .requires(src -> src.getSender().hasPermission(PERMISSION))
+                    .then(literal("status")
+                            .executes(commands::executeStatus))
+                    .then(literal("reload")
+                            .executes(commands::executeReload))
+                    .then(literal("debug")
+                            .executes(commands::executeDebug));
+
+            // docs/spec/08-TIERS-AND-LICENSING.txt - templates/escalation, the panel setup wizard,
+            // and Discord-link force-unlink are all paid-only features (the systems they configure
+            // don't exist in the free edition), so their command subtrees aren't registered at all.
+            if (edition.isPaid()) {
+                root.then(literal("template")
+                                .then(literal("add")
+                                        .then(argument("key", StringArgumentType.word())
+                                                .then(argument("type", StringArgumentType.word())
+                                                        .then(argument("duration", StringArgumentType.word())
+                                                                .then(argument("group", StringArgumentType.word())
+                                                                        .then(argument("reason", StringArgumentType.greedyString())
+                                                                                .executes(commands::executeAdd)))))))
+                                .then(literal("remove")
+                                        .then(argument("key", StringArgumentType.word())
+                                                .executes(commands::executeRemove)))
+                                .then(literal("list")
+                                        .executes(commands::executeList)))
+                        .then(literal("escalation")
+                                .then(literal("add")
+                                        .then(argument("group", StringArgumentType.word())
+                                                .then(argument("offence", IntegerArgumentType.integer(1))
+                                                        .then(argument("type", StringArgumentType.word())
+                                                                .then(argument("duration", StringArgumentType.word())
+                                                                        .executes(commands::executeEscalationAdd))))))
+                                .then(literal("list")
+                                        .then(argument("group", StringArgumentType.word())
+                                                .executes(commands::executeEscalationList))))
+                        .then(literal("setup")
+                                .executes(commands::executeSetup))
+                        .then(literal("unlink")
+                                .then(argument("player", StringArgumentType.word())
+                                        .executes(commands::executeForceUnlink)));
+            }
+
+            registrar.register(root.build(), "BetterWarden admin commands");
         });
     }
 
     private int executeStatus(CommandContext<CommandSourceStack> ctx) {
         CommandSender sender = ctx.getSource().getSender();
         Msg.send(sender, lang.get("admin.status-header"));
+        Msg.send(sender, lang.get("admin.status-version", plugin.getPluginMeta().getVersion()));
+        Msg.send(sender, lang.get("admin.status-edition", edition.isPaid() ? "Standard/Network" : "Free"));
         Msg.send(sender, lang.get("admin.status-server", config.getServerName()));
         Msg.send(sender, lang.get("admin.status-mode"));
         Msg.send(sender, lang.get("admin.status-storage", config.getStorage().getType()));
@@ -121,6 +142,22 @@ public final class WardenAdminCommands {
             Msg.send(sender, lang.get("admin.status-db-ok", count));
         } catch (Exception e) {
             Msg.send(sender, lang.get("admin.status-db-unreachable", e.getMessage()));
+        }
+
+        if (edition.isFree()) {
+            Msg.send(sender, lang.get("admin.status-discord-paid-only"));
+            Msg.send(sender, lang.get("admin.status-panel-paid-only"));
+        } else {
+            if (!config.getDiscord().isEnabled() || config.getDiscord().getToken().isBlank()) {
+                Msg.send(sender, lang.get("admin.status-discord-disabled"));
+            } else {
+                Msg.send(sender, lang.get(discordBot.isConnected() ? "admin.status-discord-connected" : "admin.status-discord-not-connected"));
+            }
+            if (panelUsers.count() == 0) {
+                Msg.send(sender, lang.get("admin.status-panel-no-owner"));
+            } else {
+                Msg.send(sender, lang.get("admin.status-panel-ready", panelUsers.count()));
+            }
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -145,6 +182,7 @@ public final class WardenAdminCommands {
         report.append("BetterWarden debug report\n");
         report.append("Generated: ").append(Instant.now()).append('\n');
         report.append("Plugin version: ").append(plugin.getPluginMeta().getVersion()).append('\n');
+        report.append("Edition: ").append(edition.isPaid() ? "Standard/Network" : "Free").append('\n');
         report.append("Server: ").append(Bukkit.getVersion()).append('\n');
         report.append("Bukkit API: ").append(Bukkit.getBukkitVersion()).append('\n');
         report.append("Java: ").append(System.getProperty("java.version")).append('\n');
@@ -157,6 +195,17 @@ public final class WardenAdminCommands {
             report.append("Database: OK (").append(count).append(" punishment template(s))\n");
         } catch (Exception e) {
             report.append("Database: UNREACHABLE - ").append(e.getMessage()).append('\n');
+        }
+        if (edition.isFree()) {
+            report.append("Discord bot: Standard/Network feature\n");
+            report.append("Panel: Standard/Network feature\n");
+        } else {
+            if (!config.getDiscord().isEnabled() || config.getDiscord().getToken().isBlank()) {
+                report.append("Discord bot: disabled (no token configured)\n");
+            } else {
+                report.append("Discord bot: ").append(discordBot.isConnected() ? "connected" : "enabled but NOT connected - check the token").append('\n');
+            }
+            report.append("Panel: ").append(panelUsers.count() == 0 ? "no owner account yet" : panelUsers.count() + " staff account(s)").append('\n');
         }
 
         File debugDir = new File(plugin.getDataFolder(), "debug");
@@ -180,12 +229,26 @@ public final class WardenAdminCommands {
         CommandSender sender = ctx.getSource().getSender();
         if (panelUsers.count() > 0) {
             Msg.send(sender, lang.get("admin.setup-already-done"));
-            return Command.SINGLE_SUCCESS;
+            return 0;
         }
         String code = setupCodeService.generate();
         Msg.send(sender, lang.get("admin.setup-code-header"));
         Msg.send(sender, lang.get("admin.setup-code-url", config.getPanel().getPort()));
         Msg.send(sender, lang.get("admin.setup-code-value", code));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    /** docs/spec/05-DISCORD-BOT.txt §6 "admin force-unlink". Fast-path resolution only (online or Bukkit-cached) - a player who linked their Discord account was necessarily online at some point. */
+    private int executeForceUnlink(CommandContext<CommandSourceStack> ctx) {
+        CommandSender sender = ctx.getSource().getSender();
+        String name = StringArgumentType.getString(ctx, "player");
+        var target = TargetResolver.resolveCached(name);
+        if (target.isEmpty()) {
+            Msg.send(sender, lang.get("common.player-not-found"));
+            return 0;
+        }
+        boolean removed = linkService.unlinkMinecraft(target.get().uuid());
+        Msg.send(sender, lang.get(removed ? "link.force-unlinked" : "link.force-unlink-not-found", target.get().name()));
         return Command.SINGLE_SUCCESS;
     }
 
