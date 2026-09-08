@@ -7,6 +7,7 @@ import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import me.psikuvit.betterWarden.core.config.EditionService;
 import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.repo.PlayerRepository;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
@@ -43,11 +44,13 @@ public final class InfoCommands {
     private final PlayerRepository players;
     private final MojangApiService mojangApi;
     private final WardenScheduler scheduler;
+    private final EditionService edition;
 
     private InfoCommands(PunishmentService punishmentService, StaffNoteService noteService,
                           AltDetectionService altDetectionService, PlayerTrackingService playerTracking,
                           PunishmentTemplateService templates, ChatInputService chatInput, LangService lang,
-                          PlayerRepository players, MojangApiService mojangApi, WardenScheduler scheduler) {
+                          PlayerRepository players, MojangApiService mojangApi, WardenScheduler scheduler,
+                          EditionService edition) {
         this.punishmentService = punishmentService;
         this.noteService = noteService;
         this.altDetectionService = altDetectionService;
@@ -58,14 +61,16 @@ public final class InfoCommands {
         this.players = players;
         this.mojangApi = mojangApi;
         this.scheduler = scheduler;
+        this.edition = edition;
     }
 
     public static void register(JavaPlugin plugin, PunishmentService punishmentService, StaffNoteService noteService,
                                  AltDetectionService altDetectionService, PlayerTrackingService playerTracking,
                                  PunishmentTemplateService templates, ChatInputService chatInput, LangService lang,
-                                 PlayerRepository players, MojangApiService mojangApi, WardenScheduler scheduler) {
+                                 PlayerRepository players, MojangApiService mojangApi, WardenScheduler scheduler,
+                                 EditionService edition) {
         InfoCommands commands = new InfoCommands(punishmentService, noteService, altDetectionService, playerTracking,
-                templates, chatInput, lang, players, mojangApi, scheduler);
+                templates, chatInput, lang, players, mojangApi, scheduler, edition);
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands registrar = event.registrar();
             registrar.register(commands.history().build(), "View a player's punishment history");
@@ -142,7 +147,7 @@ public final class InfoCommands {
                     // Spec says /lookup opens a GUI - do that for players; console has no inventory, so it keeps the chat form.
                     if (sender instanceof Player staff) {
                         new PlayerLookupMenu(uuid, target.get().name(), punishmentService, noteService, altDetectionService,
-                                playerTracking, templates, chatInput).open(staff);
+                                playerTracking, templates, chatInput, edition).open(staff);
                         return;
                     }
 
@@ -199,7 +204,10 @@ public final class InfoCommands {
                         return;
                     }
                     UUID staffUuid = sender instanceof Player p ? p.getUniqueId() : null;
-                    noteService.add(target.get().uuid(), staffUuid, text);
+                    if (noteService.add(target.get().uuid(), staffUuid, text).isEmpty()) {
+                        Msg.send(sender, lang.get("note.paid-feature"));
+                        return;
+                    }
                     Msg.send(sender, lang.get("note.added", target.get().name()));
                 }));
         return Command.SINGLE_SUCCESS;

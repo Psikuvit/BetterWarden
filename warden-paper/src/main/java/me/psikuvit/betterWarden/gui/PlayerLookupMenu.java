@@ -1,5 +1,6 @@
 package me.psikuvit.betterWarden.gui;
 
+import me.psikuvit.betterWarden.core.config.EditionService;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
 import me.psikuvit.betterWarden.core.service.AltDetectionService;
 import me.psikuvit.betterWarden.core.service.ChatInputService;
@@ -28,7 +29,7 @@ public class PlayerLookupMenu extends WardenMenu {
     public PlayerLookupMenu(UUID targetUuid, String targetName, PunishmentService punishmentService,
                              StaffNoteService noteService, AltDetectionService altDetectionService,
                              PlayerTrackingService playerTracking, PunishmentTemplateService templates,
-                             ChatInputService chatInput) {
+                             ChatInputService chatInput, EditionService edition) {
         super(27, "<dark_gray>Lookup: <white>" + targetName);
 
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
@@ -39,22 +40,28 @@ public class PlayerLookupMenu extends WardenMenu {
             headLore.add("First seen: " + p.getFirstSeen());
             headLore.add("Last seen: " + p.getLastSeen());
         }, () -> headLore.add("No profile on record."));
-        headMeta.lore(headLore.stream().map(l -> (net.kyori.adventure.text.Component) MM.deserialize("<gray>" + l)).toList());
+        headMeta.lore(headLore.stream().map(l -> MM.deserialize("<gray>" + l)).toList());
         head.setItemMeta(headMeta);
         setItem(4, head);
 
         setItem(10, infoItem(Material.BOOK, "Active Punishments",
                 String.valueOf(punishmentService.activePunishments(targetUuid).size())));
-        setItem(12, infoItem(Material.WRITABLE_BOOK, "Staff Notes",
-                String.valueOf(noteService.list(targetUuid).size())));
 
-        List<me.psikuvit.betterWarden.core.model.Player> alts = altDetectionService.findAlts(targetUuid);
-        String altsValue = alts.isEmpty() ? "none" : alts.stream()
-                .map(me.psikuvit.betterWarden.core.model.Player::getLastName)
-                .limit(5)
-                .reduce((a, b) -> a + ", " + b)
-                .orElse("none");
-        setItem(14, infoItem(Material.ZOMBIE_HEAD, "Known Alts (" + alts.size() + ")", altsValue));
+        if (edition.isPaid()) {
+            setItem(12, infoItem(Material.WRITABLE_BOOK, "Staff Notes",
+                    String.valueOf(noteService.list(targetUuid).size())));
+
+            List<me.psikuvit.betterWarden.core.model.Player> alts = altDetectionService.findAlts(targetUuid);
+            String altsValue = alts.isEmpty() ? "none" : alts.stream()
+                    .map(me.psikuvit.betterWarden.core.model.Player::getLastName)
+                    .limit(5)
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("none");
+            setItem(14, infoItem(Material.ZOMBIE_HEAD, "Known Alts (" + alts.size() + ")", altsValue));
+        } else {
+            setItem(12, infoItem(Material.WRITABLE_BOOK, "Staff Notes", "Standard/Network feature"));
+            setItem(14, infoItem(Material.ZOMBIE_HEAD, "Known Alts", "Standard/Network feature"));
+        }
 
         setItem(19, actionItem(Material.PAPER, "<yellow>Warn"), e -> {
             if (e.getWhoClicked() instanceof Player staff) {
