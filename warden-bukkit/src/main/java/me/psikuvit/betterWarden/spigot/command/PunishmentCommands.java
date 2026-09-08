@@ -24,9 +24,9 @@ import java.util.UUID;
 
 /**
  * ban/sban/tempban/ipban/kick/skick/mute/smute/tempmute/warn/unban/unmute - same command surface
- * as warden-paper's own PunishmentCommands, ported off Brigadier onto plain CommandExecutor
+ * as the Paper path's own PunishmentCommands, ported off Brigadier onto plain CommandExecutor
  * (registered per-name via plugin.yml, no dynamic argument suggestions/types here). Async
- * target resolution and the Async.runOnMain() pattern carry over unchanged - see warden-paper's
+ * target resolution and the Async.runOnMain() pattern carry over unchanged - see the Paper path's
  * PunishmentCommands for the full reasoning (Brigadier or not, this plugin still can't block the
  * main thread on a Mojang lookup).
  */

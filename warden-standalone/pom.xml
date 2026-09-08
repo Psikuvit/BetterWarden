@@ -20,7 +20,7 @@
         <finalName>warden-standalone</finalName>
         <plugins>
             <plugin>
-                <!-- No shading needed here (unlike warden-paper/velocity) - there's no host
+                <!-- No shading needed here (unlike warden-bukkit/velocity) - there's no host
                      application classloader to avoid colliding with, so the standard Spring Boot
                      repackage (proper Main-Class, nested-jar layout) is the right tool. -->
                 <groupId>org.springframework.boot</groupId>

@@ -54,7 +54,7 @@ public final class WardenBungeePlugin extends Plugin implements Listener {
 
     @Override
     public void onEnable() {
-        // Same reason as warden-paper/warden-velocity: Spring's autoconfiguration scanning reads
+        // Same reason as warden-bukkit/warden-velocity: Spring's autoconfiguration scanning reads
         // the context classloader, and Bungee's plugin classloader is never the default one.
         Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
@@ -128,7 +128,7 @@ public final class WardenBungeePlugin extends Plugin implements Listener {
     }
 
     /**
-     * No local core at all - never boots Spring/JPA/SQLite/Netty-HTTP. Mirrors warden-paper's and
+     * No local core at all - never boots Spring/JPA/SQLite/Netty-HTTP. Mirrors warden-bukkit's and
      * warden-velocity's CLIENT mode: this proxy reads warden.core.url from its own config.yml
      * (it IS the top of the topology when pointed at a standalone core) and still relays a
      * handshake to backends on join, same as HOST mode, so a Paper backend behind it doesn't

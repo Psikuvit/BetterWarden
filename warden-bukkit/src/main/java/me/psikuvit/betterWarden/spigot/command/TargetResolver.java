@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Online, then warden's local player table (HOST mode), then an async Mojang lookup as a last
- * resort - same tiered approach as warden-paper's own TargetResolver, minus the middle
+ * resort - same tiered approach as the Paper path's own TargetResolver, minus the middle
  * Bukkit-offline-cache tier: Server#getOfflinePlayerIfCached is a Paper-only addition, confirmed
  * absent from plain Spigot's API via javap, not assumed. Spigot's own Server#getOfflinePlayer(...)
  * exists but does a blocking lookup with very different (much worse) semantics, not a safe

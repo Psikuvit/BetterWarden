@@ -125,7 +125,7 @@ public final class ConfigBootstrap {
 
     /**
      * warden-velocity's own CLIENT mode reads its core URL directly from config.yml (warden.core.url)
-     * - unlike warden-paper's CLIENT mode, there's no upstream proxy to hand it one via a handshake;
+     * - unlike warden-bukkit's CLIENT mode, there's no upstream proxy to hand it one via a handshake;
      * a Velocity proxy in CLIENT mode IS the top of the topology, pointed at a standalone core.
      */
     public static String readCoreUrl(File configFile) throws IOException {

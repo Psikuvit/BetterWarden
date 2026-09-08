@@ -5,13 +5,13 @@ FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /build
 COPY pom.xml .
 COPY warden-core/pom.xml warden-core/pom.xml
-COPY warden-paper/pom.xml warden-paper/pom.xml
+COPY warden-bukkit/pom.xml warden-bukkit/pom.xml
 COPY warden-velocity/pom.xml warden-velocity/pom.xml
 COPY warden-standalone/pom.xml warden-standalone/pom.xml
 COPY warden-core/src warden-core/src
 COPY warden-standalone/src warden-standalone/src
 # Only warden-standalone + warden-core (-am) actually get built - never touches paper-api or
-# velocity-api, so a plain JDK 21 here is correct, unlike warden-paper/warden-velocity's builds.
+# velocity-api, so a plain JDK 21 here is correct, unlike warden-bukkit/warden-velocity's builds.
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -pl warden-standalone -am clean package -DskipTests
 

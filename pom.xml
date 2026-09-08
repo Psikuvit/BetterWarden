@@ -13,10 +13,11 @@
 
     <modules>
         <module>warden-core</module>
-        <!-- warden-spigot merged into warden-paper (me.psikuvit.betterWarden.spigot) - see
-             warden-paper/pom.xml. One jar now ships both plugin.yml and paper-plugin.yml; the
-             server's own loader picks the right one. -->
-        <module>warden-paper</module>
+        <!-- warden-spigot merged into warden-bukkit (me.psikuvit.betterWarden.spigot) - see
+             warden-bukkit/pom.xml. One jar now ships both plugin.yml and paper-plugin.yml; the
+             server's own loader picks the right one. Renamed from warden-paper since it now
+             covers both Paper and plain Spigot, not just Paper. -->
+        <module>warden-bukkit</module>
         <module>warden-velocity</module>
         <module>warden-bungee</module>
         <module>warden-standalone</module>
@@ -32,8 +33,9 @@
              resource filtering. Build-time only, never read from config.yml (a free user editing
              config.yml must not be able to unlock paid features). -->
         <warden.edition>paid</warden.edition>
-        <!-- Appended to warden-paper/warden-spigot's jar finalName so the two editions are never
-             confusable on disk (BetterWarden.jar vs BetterWarden-Free.jar) - see the `free` profile below. -->
+        <!-- Appended to warden-bukkit's two jar finalNames (BetterWarden.jar, BetterWarden-Spigot.jar)
+             so the two editions are never confusable on disk (BetterWarden.jar vs
+             BetterWarden-Free.jar) - see the `free` profile below. -->
         <warden.jarSuffix></warden.jarSuffix>
     </properties>
 
@@ -89,7 +91,7 @@
     </repositories>
 
     <profiles>
-        <!-- mvn package -Pfree - warden-paper/warden-spigot only, see docs/spec/08-TIERS-AND-LICENSING.txt.
+        <!-- mvn package -Pfree - warden-bukkit only, see docs/spec/08-TIERS-AND-LICENSING.txt.
              No profile (default) keeps today's behaviour unchanged: full paid build. -->
         <profile>
             <id>free</id>

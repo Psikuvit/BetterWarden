@@ -4,7 +4,7 @@ main: me.psikuvit.betterWarden.spigot.WardenSpigotPlugin
 api-version: '1.20'
 author: psikuvit
 
-# Unlike Paper's dynamic Brigadier registration (warden-paper's paper-plugin.yml needs none of
+# Unlike Paper's dynamic Brigadier registration (the Paper path's paper-plugin.yml needs none of
 # this), plain Spigot commands must be declared statically here - the executor is still set
 # programmatically in onEnable() based on warden.mode (HOST gets the full set via
 # PunishmentCommands, CLIENT gets the smaller set via RemotePunishmentCommands - see

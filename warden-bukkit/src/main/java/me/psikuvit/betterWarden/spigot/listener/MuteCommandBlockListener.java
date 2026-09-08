@@ -11,7 +11,7 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import java.util.Locale;
 import java.util.Set;
 
-/** Blocks a small set of chat-adjacent commands while muted (/msg, /r, /me, ...) - same list as warden-paper's own. */
+/** Blocks a small set of chat-adjacent commands while muted (/msg, /r, /me, ...) - same list as the Paper path's own. */
 public class MuteCommandBlockListener implements Listener {
 
     private static final Set<String> BLOCKED = Set.of("msg", "message", "tell", "w", "r", "reply", "me");

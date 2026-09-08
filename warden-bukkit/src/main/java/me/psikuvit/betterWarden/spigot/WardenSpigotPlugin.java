@@ -31,11 +31,12 @@ import org.springframework.core.io.DefaultResourceLoader;
 import java.io.File;
 
 /**
- * Plain Spigot (non-Paper) backend plugin - not a variant of warden-paper, a full separate
- * module against a completely different API surface (no Brigadier, no native Adventure, no
- * Folia). HOST mode boots the same embedded Spring context as every other platform; CLIENT mode
- * talks to an external core over REST/WS. Ships the core moderation surface only this pass -
- * PLAN.md tracks what's deferred (reports/tickets/lookup/GUI menus/chat filter/hooks).
+ * Plain Spigot (non-Paper) backend plugin - the other half of warden-bukkit, against a
+ * completely different API surface than the Paper path (no Brigadier, no native Adventure, no
+ * Folia), so its own main class rather than a variant of BetterWarden.java. HOST mode boots the
+ * same embedded Spring context as every other platform; CLIENT mode talks to an external core
+ * over REST/WS. Ships the core moderation surface only this pass - PLAN.md tracks what's
+ * deferred (reports/tickets/lookup/GUI menus/chat filter/hooks).
  */
 public final class WardenSpigotPlugin extends JavaPlugin {
 
@@ -103,7 +104,7 @@ public final class WardenSpigotPlugin extends JavaPlugin {
 
     /**
      * No local core at all - never boots Spring/JPA/SQLite. Just enough to talk to a proxy's
-     * core over REST/WS, same shape as warden-paper's own CLIENT mode.
+     * core over REST/WS, same shape as the Paper path's own CLIENT mode (BetterWarden.java).
      */
     private void bootClientMode(SpigotMsg msg) {
         var handshake = CoreHandshakeListener.readCached(getDataFolder());

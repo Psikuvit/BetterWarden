@@ -26,7 +26,7 @@ import java.util.UUID;
 
 /**
  * CLIENT-mode punishment commands - a scoped-down version of PunishmentCommands, same as
- * warden-paper's own: no silent variants, no #template shorthand, no /ipban (those all need
+ * the Paper path's own RemotePunishmentCommands: no silent variants, no #template shorthand, no /ipban (those all need
  * core-side services CLIENT mode doesn't have a local copy of).
  */
 public final class RemotePunishmentCommands {

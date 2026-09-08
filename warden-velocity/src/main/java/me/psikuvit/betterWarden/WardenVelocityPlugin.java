@@ -65,7 +65,7 @@ public final class WardenVelocityPlugin {
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
-        // Same reason as warden-paper: Spring's autoconfiguration scanning reads the
+        // Same reason as warden-bukkit: Spring's autoconfiguration scanning reads the
         // context classloader, and Velocity's plugin classloader is never the default one.
         Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
@@ -136,7 +136,7 @@ public final class WardenVelocityPlugin {
     }
 
     /**
-     * No local core at all - never boots Spring/JPA/SQLite/Tomcat. Mirrors warden-paper's CLIENT
+     * No local core at all - never boots Spring/JPA/SQLite/Tomcat. Mirrors warden-bukkit's CLIENT
      * mode, but this proxy has no upstream handshake to read its core URL from (it IS the top of
      * the topology when pointed at a standalone core) - warden.core.url in its own config.yml
      * instead. Still relays a handshake to backends on join, same as HOST mode, so a Paper backend

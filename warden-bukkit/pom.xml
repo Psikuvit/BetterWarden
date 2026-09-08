@@ -10,11 +10,11 @@
         <version>1.0</version>
     </parent>
 
-    <artifactId>warden-paper</artifactId>
+    <artifactId>warden-bukkit</artifactId>
     <packaging>jar</packaging>
 
-    <name>warden-paper</name>
-    <description>Paper plugin: embeds warden-core (HOST mode), Bukkit-facing commands/GUIs/listeners.</description>
+    <name>warden-bukkit</name>
+    <description>Paper and plain-Spigot plugin in one jar: embeds warden-core (HOST mode), Bukkit-facing commands/GUIs/listeners, plus a plugin.yml-driven Spigot path under the spigot/ subpackage.</description>
 
     <build>
         <finalName>BetterWarden${warden.jarSuffix}</finalName>
