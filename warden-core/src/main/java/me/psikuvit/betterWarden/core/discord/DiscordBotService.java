@@ -1,6 +1,7 @@
 package me.psikuvit.betterWarden.core.discord;
 
 import me.psikuvit.betterWarden.core.config.CoreConfig;
+import me.psikuvit.betterWarden.core.config.EditionService;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -9,6 +10,7 @@ import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.events.session.ShutdownEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.CloseCode;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -29,16 +31,25 @@ public class DiscordBotService extends ListenerAdapter {
     private static final Logger log = LoggerFactory.getLogger(DiscordBotService.class);
 
     private final CoreConfig config;
+    private final EditionService edition;
     private final ModerationSlashCommands moderationSlashCommands;
+    private final ReportInteractionListener reportInteractionListener;
     private volatile JDA jda;
 
-    public DiscordBotService(CoreConfig config, ModerationSlashCommands moderationSlashCommands) {
+    public DiscordBotService(CoreConfig config, EditionService edition, ModerationSlashCommands moderationSlashCommands,
+                              ReportInteractionListener reportInteractionListener) {
         this.config = config;
+        this.edition = edition;
         this.moderationSlashCommands = moderationSlashCommands;
+        this.reportInteractionListener = reportInteractionListener;
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void connect() {
+        if (edition.isFree()) {
+            log.info("Discord bot is a Standard/Network feature - see betterwarden.dev to upgrade.");
+            return;
+        }
         CoreConfig.Discord discord = config.getDiscord();
         if (!discord.isEnabled() || discord.getToken().isBlank()) {
             log.info("Discord bot disabled (no token configured) - see config.yml warden.discord.");
@@ -46,7 +57,7 @@ public class DiscordBotService extends ListenerAdapter {
         }
         try {
             jda = JDABuilder.createLight(discord.getToken())
-                    .addEventListeners(this, moderationSlashCommands)
+                    .addEventListeners(this, moderationSlashCommands, reportInteractionListener)
                     .build();
         } catch (Exception e) {
             // A malformed token (wrong length/format) fails build() synchronously with an
@@ -66,7 +77,7 @@ public class DiscordBotService extends ListenerAdapter {
     }
 
     @Override
-    public void onReady(ReadyEvent event) {
+    public void onReady(@NonNull ReadyEvent event) {
         Guild guild = resolveGuild();
         if (guild == null) {
             log.warn("Discord bot connected as {}, but warden.discord.guild-id is not set or doesn't "

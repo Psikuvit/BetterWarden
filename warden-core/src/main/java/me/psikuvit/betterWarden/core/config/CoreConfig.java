@@ -203,6 +203,8 @@ public class CoreConfig {
         private String bindAddress = "";
         /** Off by default: blindly trusting X-Forwarded-* lets a client spoof its own IP unless something in front actually strips/sets them. Turn on only when a reverse proxy or tunnel (nginx/Caddy/Cloudflare Tunnel) is the sole way in. */
         private boolean trustForwardedHeaders = false;
+        /** Externally-reachable panel URL (e.g. behind a Cloudflare Tunnel or reverse proxy). Blank = not configured - anything that would otherwise deep-link into the panel (the Discord report feed's "Open in panel" button) just omits that link instead of guessing a wrong one. */
+        private String publicUrl = "";
 
         public int getPort() {
             return port;
@@ -226,6 +228,14 @@ public class CoreConfig {
 
         public void setTrustForwardedHeaders(boolean trustForwardedHeaders) {
             this.trustForwardedHeaders = trustForwardedHeaders;
+        }
+
+        public String getPublicUrl() {
+            return publicUrl;
+        }
+
+        public void setPublicUrl(String publicUrl) {
+            this.publicUrl = publicUrl;
         }
     }
 
@@ -468,6 +478,7 @@ public class CoreConfig {
         public static class Feeds {
             private String punishmentLog = "";
             private String digest = "";
+            private String reports = "";
 
             public String getPunishmentLog() {
                 return punishmentLog;
@@ -483,6 +494,14 @@ public class CoreConfig {
 
             public void setDigest(String digest) {
                 this.digest = digest;
+            }
+
+            public String getReports() {
+                return reports;
+            }
+
+            public void setReports(String reports) {
+                this.reports = reports;
             }
         }
     }

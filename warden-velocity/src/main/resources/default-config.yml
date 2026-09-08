@@ -35,6 +35,9 @@ warden:
     # reachable directly, leave it false: X-Forwarded-* headers are otherwise
     # spoofable by any client.
     trust-forwarded-headers: false
+    # Externally-reachable panel URL (behind a reverse proxy/tunnel) - used to build links back
+    # into the panel from outside (e.g. the Discord report feed). Blank = no such link is shown.
+    public-url: ""
 
   login-gate:
     fail-open: true
@@ -64,6 +67,7 @@ warden:
       # Channel IDs - blank means that feed is off.
       punishment-log: ""
       digest: ""
+      reports: ""
 
   branding:
     # Shown in the panel header and login/landing pages. Blank = no logo image, just the
