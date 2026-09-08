@@ -1,6 +1,6 @@
 name: BetterWarden
 version: '${version}'
-main: me.psikuvit.betterWarden.WardenSpigotPlugin
+main: me.psikuvit.betterWarden.spigot.WardenSpigotPlugin
 api-version: '1.20'
 author: psikuvit
 

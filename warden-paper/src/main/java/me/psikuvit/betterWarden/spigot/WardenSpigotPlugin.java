@@ -1,15 +1,12 @@
-package me.psikuvit.betterWarden;
+package me.psikuvit.betterWarden.spigot;
 
-import me.psikuvit.betterWarden.bridge.SpigotBridge;
-import me.psikuvit.betterWarden.client.RemotePunishmentCommands;
-import me.psikuvit.betterWarden.command.PunishmentCommands;
-import me.psikuvit.betterWarden.command.SpigotMsg;
+import me.psikuvit.betterWarden.PlatformBootstrap;
+import me.psikuvit.betterWarden.spigot.bridge.SpigotBridge;
+import me.psikuvit.betterWarden.spigot.client.RemotePunishmentCommands;
+import me.psikuvit.betterWarden.spigot.command.PunishmentCommands;
+import me.psikuvit.betterWarden.spigot.command.SpigotMsg;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
 import me.psikuvit.betterWarden.core.client.RemoteCoreClient;
-import me.psikuvit.betterWarden.core.client.RemotePunishmentCache;
-import me.psikuvit.betterWarden.core.client.WriteJournal;
-import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
-import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.network.CoreHandshake;
 import me.psikuvit.betterWarden.core.repo.PlayerRepository;
 import me.psikuvit.betterWarden.core.service.IpHashingService;
@@ -19,10 +16,10 @@ import me.psikuvit.betterWarden.core.service.PlayerTrackingService;
 import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.listener.BanGateListener;
-import me.psikuvit.betterWarden.listener.MuteCommandBlockListener;
-import me.psikuvit.betterWarden.listener.MuteGateListener;
 import me.psikuvit.betterWarden.listener.PlayerTrackingListener;
 import me.psikuvit.betterWarden.network.CoreHandshakeListener;
+import me.psikuvit.betterWarden.spigot.listener.MuteCommandBlockListener;
+import me.psikuvit.betterWarden.spigot.listener.MuteGateListener;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.springframework.boot.Banner;
@@ -56,32 +53,17 @@ public final class WardenSpigotPlugin extends JavaPlugin {
         audiences = BukkitAudiences.create(this);
         SpigotMsg msg = new SpigotMsg(audiences);
 
-        try {
-            configFile = ConfigBootstrap.ensureConfigFile(getDataFolder(), () -> getResource("default-config.yml"));
-            ConfigBootstrap.ensureSecuritySecrets(configFile);
-            ConfigBootstrap.applyToSystemProperties(configFile, getDataFolder());
-        } catch (Exception e) {
-            getLogger().severe("Could not load config.yml: " + e);
-            getServer().getPluginManager().disablePlugin(this);
+        PlatformBootstrap.ConfigResult boot = PlatformBootstrap.initConfig(this);
+        if (boot == null) {
             return;
         }
-
-        getServer().getMessenger().registerIncomingPluginChannel(this, CoreHandshake.CHANNEL_ID,
-                new CoreHandshakeListener(this, getDataFolder()));
-        CoreHandshakeListener.warnIfCached(this, getDataFolder());
-
-        String mode;
-        try {
-            mode = ConfigBootstrap.readMode(configFile);
-        } catch (Exception e) {
-            getLogger().severe("Could not read warden.mode from config.yml: " + e);
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
-        if ("CLIENT".equals(mode)) {
+        configFile = boot.configFile();
+        if ("CLIENT".equals(boot.mode())) {
             bootClientMode(msg);
             return;
         }
+
+        CoreHandshakeListener.warnIfCached(this, getDataFolder());
 
         getLogger().info("Booting embedded Spring context...");
         long start = System.currentTimeMillis();
@@ -134,26 +116,20 @@ public final class WardenSpigotPlugin extends JavaPlugin {
         CoreHandshake h = handshake.get();
         getLogger().info("CLIENT mode - connecting to Core at " + h.coreUrl() + "...");
 
-        LangService lang = new LangService();
-        CoreConfig rawConfig = new CoreConfig();
+        PlatformBootstrap.ClientCore client;
         try {
-            rawConfig.getSecurity().setIpSalt(ConfigBootstrap.readIpSalt(configFile));
+            client = PlatformBootstrap.bootClientCore(h, configFile, getDataFolder(),
+                    org.slf4j.LoggerFactory.getLogger(RemoteCoreClient.class), org.slf4j.LoggerFactory.getLogger(WardenSpigotPlugin.class));
         } catch (Exception e) {
             getLogger().severe("Could not read warden.security.ip-salt from config.yml: " + e);
             return;
         }
-        IpHashingService ipHashing = new IpHashingService(rawConfig);
-        MojangApiService mojangApi = new MojangApiService();
+        remoteClient = client.remoteClient();
 
-        RemotePunishmentCache cache = new RemotePunishmentCache();
-        WriteJournal journal = new WriteJournal(getDataFolder(), org.slf4j.LoggerFactory.getLogger(WardenSpigotPlugin.class));
-        remoteClient = new RemoteCoreClient(h.coreUrl(), h.nodeToken(), cache, journal, org.slf4j.LoggerFactory.getLogger(RemoteCoreClient.class));
-        remoteClient.start();
-
-        getServer().getPluginManager().registerEvents(new BanGateListener(cache, ipHashing, lang), this);
-        getServer().getPluginManager().registerEvents(new MuteGateListener(cache, lang, audiences), this);
-        getServer().getPluginManager().registerEvents(new MuteCommandBlockListener(cache, lang, audiences), this);
-        RemotePunishmentCommands.register(this, remoteClient, cache, lang, mojangApi, msg);
+        getServer().getPluginManager().registerEvents(new BanGateListener(client.cache(), client.ipHashing(), client.lang()), this);
+        getServer().getPluginManager().registerEvents(new MuteGateListener(client.cache(), client.lang(), audiences), this);
+        getServer().getPluginManager().registerEvents(new MuteCommandBlockListener(client.cache(), client.lang(), audiences), this);
+        RemotePunishmentCommands.register(this, remoteClient, client.cache(), client.lang(), client.mojangApi(), msg);
     }
 
     @Override

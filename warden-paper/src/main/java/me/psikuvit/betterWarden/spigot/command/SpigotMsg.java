@@ -1,4 +1,4 @@
-package me.psikuvit.betterWarden.command;
+package me.psikuvit.betterWarden.spigot.command;
 
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.text.minimessage.MiniMessage;

@@ -1,8 +1,8 @@
-package me.psikuvit.betterWarden.client;
+package me.psikuvit.betterWarden.spigot.client;
 
-import me.psikuvit.betterWarden.command.Async;
-import me.psikuvit.betterWarden.command.SpigotMsg;
-import me.psikuvit.betterWarden.command.TargetResolver;
+import me.psikuvit.betterWarden.spigot.command.Async;
+import me.psikuvit.betterWarden.spigot.command.SpigotMsg;
+import me.psikuvit.betterWarden.spigot.command.TargetResolver;
 import me.psikuvit.betterWarden.core.client.RemoteCoreClient;
 import me.psikuvit.betterWarden.core.client.RemotePunishmentCache;
 import me.psikuvit.betterWarden.core.model.Punishment;

@@ -1,4 +1,4 @@
-package me.psikuvit.betterWarden.command;
+package me.psikuvit.betterWarden.spigot.command;
 
 import me.psikuvit.betterWarden.core.model.Punishment;
 import me.psikuvit.betterWarden.core.model.PunishmentTemplate;

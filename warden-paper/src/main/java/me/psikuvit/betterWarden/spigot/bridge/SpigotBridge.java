@@ -1,4 +1,4 @@
-package me.psikuvit.betterWarden.bridge;
+package me.psikuvit.betterWarden.spigot.bridge;
 
 import me.psikuvit.betterWarden.core.platform.PlatformBridge;
 import me.psikuvit.betterWarden.core.platform.PlayerRef;

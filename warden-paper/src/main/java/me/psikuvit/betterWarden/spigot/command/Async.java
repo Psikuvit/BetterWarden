@@ -1,4 +1,4 @@
-package me.psikuvit.betterWarden.command;
+package me.psikuvit.betterWarden.spigot.command;
 
 import org.bukkit.Bukkit;
 

@@ -1,4 +1,4 @@
-package me.psikuvit.betterWarden.listener;
+package me.psikuvit.betterWarden.spigot.listener;
 
 import me.psikuvit.betterWarden.core.service.LangService;
 import me.psikuvit.betterWarden.core.service.PunishmentGateway;

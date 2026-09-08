@@ -13,8 +13,10 @@
 
     <modules>
         <module>warden-core</module>
+        <!-- warden-spigot merged into warden-paper (me.psikuvit.betterWarden.spigot) - see
+             warden-paper/pom.xml. One jar now ships both plugin.yml and paper-plugin.yml; the
+             server's own loader picks the right one. -->
         <module>warden-paper</module>
-        <module>warden-spigot</module>
         <module>warden-velocity</module>
         <module>warden-bungee</module>
         <module>warden-standalone</module>

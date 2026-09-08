@@ -70,10 +70,33 @@
                                     <pattern>com.fasterxml.jackson</pattern>
                                     <shadedPattern>me.psikuvit.betterWarden.libs.jackson</shadedPattern>
                                 </relocation>
+                                <!-- Do NOT relocate tools.jackson (Jackson 3.x, what Spring Boot 4's own
+                                     JacksonAutoConfiguration builds its ObjectMapper bean from): found via
+                                     a real HOST-mode boot on plain Spigot (server1-3 are all CLIENT mode,
+                                     so this had never actually run before) - Spring's Jackson
+                                     autoconfiguration gates itself on tools.jackson.databind.ObjectMapper
+                                     via a STRING-based classpath check (@ConditionalOnClass(name = "...")),
+                                     which shade's relocation does not rewrite (it only rewrites real class
+                                     references, not string literals). Relocating the package silently made
+                                     Spring think the class was absent and skip creating the ObjectMapper
+                                     bean entirely - NoSuchBeanDefinitionException for
+                                     NodeWebSocketHandler's constructor, not a NoSuchMethodError, which is
+                                     why compiling clean and booting on Paper's CLIENT-mode servers never
+                                     caught it. No known collision risk leaving this unrelocated - it's a
+                                     brand-new Jackson 3.x package no other plugin bundles yet. -->
                                 <relocation>
                                     <pattern>org.apache.commons</pattern>
                                     <shadedPattern>me.psikuvit.betterWarden.libs.commons</shadedPattern>
                                 </relocation>
+                                <!-- Do NOT relocate net.kyori (Adventure) or org.slf4j either, same
+                                     reasoning as above: on Paper, parent-first classloading means the
+                                     server's own already-loaded copies win and these bundled ones sit
+                                     unused; on plain Spigot (which has neither on its own classpath at
+                                     all - see WardenSpigotPlugin under spigot/), the plugin's own
+                                     bundled unrelocated copies are what actually get loaded. Relocating
+                                     either would break the Spigot path, which needs to construct real
+                                     Adventure/slf4j-jdk14 instances of the same types this jar's own
+                                     Paper-path code compiles against. -->
                             </relocations>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
@@ -112,6 +135,34 @@
             <artifactId>paper-api</artifactId>
             <version>26.2.build.121-stable</version>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- Plain-Spigot support (me.psikuvit.betterWarden.spigot, formerly the separate
+             warden-spigot module - merged so one jar boots correctly on either platform: Paper
+             only ever reads paper-plugin.yml, plain Spigot/Bukkit only ever reads plugin.yml
+             (both ship in this jar's resources, each naming its own already-independent main
+             class), so which one "boots" is decided by the server's own loader, not by any
+             runtime detection code here. paper-api is a superset of spigot-api for the plain
+             Bukkit surface these classes use, so no separate spigot-api dependency is needed. -->
+        <dependency>
+            <!-- No native Adventure on Spigot at all, unlike Paper - this bridges MiniMessage output to Player#sendMessage. Deliberately NOT provided/relocated - see the shade config above. -->
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-platform-bukkit</artifactId>
+            <version>4.4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-minimessage</artifactId>
+            <version>4.21.0</version>
+        </dependency>
+        <dependency>
+            <!-- JavaPlugin#getLogger() on plain Spigot returns java.util.logging.Logger, not SLF4J
+                 (Paper's JavaPlugin adds getSLF4JLogger(), Spigot's doesn't) - binds
+                 org.slf4j.LoggerFactory to JUL so RemoteCoreClient/WriteJournal's Logger param
+                 works unchanged in the Spigot path's CLIENT mode. -->
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>2.0.18</version>
         </dependency>
 
         <dependency>
