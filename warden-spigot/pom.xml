@@ -17,7 +17,7 @@
     <description>Plain Spigot (non-Paper) backend plugin - a separate module from warden-paper, not a variant: no Brigadier (legacy CommandExecutor + plugin.yml), no native Adventure (adventure-platform-bukkit), no Folia. Ships the core moderation surface only this pass - see PLAN.md for what's deferred.</description>
 
     <build>
-        <finalName>BetterWarden-Spigot</finalName>
+        <finalName>BetterWarden-Spigot${warden.jarSuffix}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

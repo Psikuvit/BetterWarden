@@ -17,7 +17,7 @@
     <description>Paper plugin: embeds warden-core (HOST mode), Bukkit-facing commands/GUIs/listeners.</description>
 
     <build>
-        <finalName>BetterWarden</finalName>
+        <finalName>BetterWarden${warden.jarSuffix}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

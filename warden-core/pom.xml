@@ -16,6 +16,28 @@
     <name>warden-core</name>
     <description>Platform-free Spring Boot core: entities, repos, services. No Bukkit/Velocity imports - see PlatformBridge.</description>
 
+    <build>
+        <resources>
+            <!-- Only edition.properties gets Maven filtering (${warden.edition} substitution) -
+                 everything else (lang/*.yml, default-config.yml, db/migration/) stays byte-for-byte
+                 as authored, same as before this existed. -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>edition.properties</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>edition.properties</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
