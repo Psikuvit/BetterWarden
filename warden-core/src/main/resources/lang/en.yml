@@ -35,6 +35,7 @@ history:
 
 note:
   added: "<gray>Note added to <white>{0}</white>."
+  paid-feature: "<red>Staff notes are a Standard/Network feature - see betterwarden.dev to upgrade."
 
 alts:
   none: "<gray>No known alts for <white>{0}</white>."
@@ -52,12 +53,21 @@ lookup:
 
 admin:
   status-header: "<white>=== BetterWarden status ==="
+  status-version: "<gray>Version: {0}"
+  status-edition: "<gray>Edition: {0}"
   status-server: "<gray>Server: {0}"
   status-mode: "<gray>Mode: HOST (single server, no proxy)"
   status-storage: "<gray>Storage: {0}"
   status-login-gate: "<gray>Login gate fail-open: {0}"
   status-db-ok: "<green>Database: OK ({0} punishment template(s))"
   status-db-unreachable: "<red>Database: UNREACHABLE - {0}"
+  status-discord-paid-only: "<gray>Discord bot: Standard/Network feature"
+  status-discord-disabled: "<gray>Discord bot: disabled (no token configured)"
+  status-discord-connected: "<green>Discord bot: connected"
+  status-discord-not-connected: "<yellow>Discord bot: enabled but not connected - check the token/logs"
+  status-panel-paid-only: "<gray>Panel: Standard/Network feature"
+  status-panel-no-owner: "<gray>Panel: no owner account yet - run /warden setup"
+  status-panel-ready: "<green>Panel: ready ({0} staff account(s))"
   reload-ok: "<green>config.yml re-read successfully."
   reload-note: "<gray>Note: storage/port/Flyway settings only take effect on a full restart."
   reload-failed: "<red>config.yml failed to parse: {0}"
@@ -100,6 +110,17 @@ report:
   detail-location: "<gray>Location: {0}"
   detail-chat-header: "<gray>Recent chat:"
   detail-chat-empty: "<gray>(no recent chat captured)"
+
+link:
+  players-only: "<red>Only in-game players can use this."
+  success: "<green>Linked to Discord account <white>{0}</white>."
+  invalid-code: "<red>That code is invalid or has expired - run <white>/link</white> in Discord again."
+  discord-already-linked: "<red>That Discord account is already linked to a different Minecraft account."
+  minecraft-already-linked: "<red>Your Minecraft account is already linked to a Discord account - <white>/unlink</white> first."
+  unlinked: "<green>Discord account unlinked."
+  not-linked: "<gray>You don't have a Discord account linked."
+  force-unlinked: "<green>Unlinked Discord account for {0}."
+  force-unlink-not-found: "<gray>{0} has no Discord account linked."
 
 ticket:
   opened: "<green>Ticket #{0} opened: {1}"

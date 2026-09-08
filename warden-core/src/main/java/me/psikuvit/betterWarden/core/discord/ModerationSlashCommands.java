@@ -30,15 +30,14 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * docs/spec/05-DISCORD-BOT.txt §2 - core moderation commands only this pass: /ban /unban /mute
- * /unmute /kick /warn /history /lookup /note. Deferred (see PLAN.md): /reports /tickets
- * /appeals /status /staffstats /link /whois, and autocomplete on player names.
+ * docs/spec/05-DISCORD-BOT.txt §2 - core moderation commands: /ban /unban /mute /unmute /kick
+ * /warn /history /lookup /note, plus §6 account linking (/link /unlink). Deferred (see PLAN.md):
+ * /reports /tickets /appeals /status /staffstats /whois, and autocomplete on player names.
  *
- * Discord attribution is a plain UUID field just like every other punishment source, but there's
- * no linked Minecraft identity for a Discord user yet (account linking, spec §6, isn't built) -
- * every action taken here is issued with a null staffUuid, same as the chat filter's auto-mute.
- * The embed/reply still names the acting Discord user for an audit trail, just not as a UUID
- * the punishment record itself can carry.
+ * Discord attribution is a plain UUID field just like every other punishment source. When the
+ * acting Discord user has linked their Minecraft account (§6), that UUID is used as staffUuid;
+ * otherwise it falls back to null, same as the chat filter's auto-mute. The embed/reply always
+ * names the acting Discord user for an audit trail regardless of link status.
  */
 @Service
 public class ModerationSlashCommands extends ListenerAdapter {
@@ -51,10 +50,12 @@ public class ModerationSlashCommands extends ListenerAdapter {
     private final PlatformBridge bridge;
     private final PlayerRepository players;
     private final MojangApiService mojangApi;
+    private final DiscordLinkService linkService;
 
     public ModerationSlashCommands(CoreConfig config, PunishmentService punishmentService, PlayerTrackingService playerTracking,
                                     StaffNoteService noteService, AltDetectionService altDetectionService,
-                                    PlatformBridge bridge, PlayerRepository players, MojangApiService mojangApi) {
+                                    PlatformBridge bridge, PlayerRepository players, MojangApiService mojangApi,
+                                    DiscordLinkService linkService) {
         this.config = config;
         this.punishmentService = punishmentService;
         this.playerTracking = playerTracking;
@@ -63,6 +64,7 @@ public class ModerationSlashCommands extends ListenerAdapter {
         this.bridge = bridge;
         this.players = players;
         this.mojangApi = mojangApi;
+        this.linkService = linkService;
     }
 
     /** Guild-scoped registration (instant) rather than global (up to an hour to propagate) - this bot only ever serves one guild anyway. */
@@ -94,7 +96,9 @@ public class ModerationSlashCommands extends ListenerAdapter {
                         .addOption(OptionType.STRING, "player", "Player name", true),
                 Commands.slash("note", "Add a staff note to a player")
                         .addOption(OptionType.STRING, "player", "Player name", true)
-                        .addOption(OptionType.STRING, "text", "Note text", true)
+                        .addOption(OptionType.STRING, "text", "Note text", true),
+                Commands.slash("link", "Link your Discord account to your Minecraft account"),
+                Commands.slash("unlink", "Remove your Discord-Minecraft account link")
         );
         guild.updateCommands().addCommands(commands).queue();
     }
@@ -102,6 +106,15 @@ public class ModerationSlashCommands extends ListenerAdapter {
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         if (event.getGuild() == null || event.getMember() == null) {
+            return;
+        }
+        // Open to every member, not staff-gated below - linking your own account isn't a moderation action.
+        if ("link".equals(event.getName())) {
+            link(event);
+            return;
+        }
+        if ("unlink".equals(event.getName())) {
+            unlink(event);
             return;
         }
         if (!DiscordPermissions.isStaff(config.getDiscord(), event.getMember())) {
@@ -139,6 +152,7 @@ public class ModerationSlashCommands extends ListenerAdapter {
         PunishmentType type = duration == null ? baseType : (baseType == PunishmentType.BAN ? PunishmentType.TEMPBAN
                 : baseType == PunishmentType.MUTE ? PunishmentType.TEMPMUTE : baseType);
         Duration finalDuration = duration;
+        UUID staffUuid = linkService.findLinkedUuid(event.getUser().getId()).orElse(null);
 
         DiscordTargetResolver.resolve(bridge, players, mojangApi, name).thenAccept(target -> {
             if (target.isEmpty()) {
@@ -150,7 +164,7 @@ public class ModerationSlashCommands extends ListenerAdapter {
                 return;
             }
             Punishment punishment = punishmentService.issue(target.get().uuid(), target.get().name(), type, reason,
-                    null, finalDuration, false, null);
+                    staffUuid, finalDuration, false, null);
             event.getHook().editOriginal("**" + punishment.getType() + "** issued to **" + target.get().name()
                     + "** (#" + punishment.getId() + ") by " + event.getUser().getAsTag() + ": " + reason).queue();
         });
@@ -158,6 +172,7 @@ public class ModerationSlashCommands extends ListenerAdapter {
 
     private void unpunish(SlashCommandInteractionEvent event, String name, Set<PunishmentType> types) {
         String reason = event.getOption("reason", OptionMapping::getAsString);
+        UUID staffUuid = linkService.findLinkedUuid(event.getUser().getId()).orElse(null);
         DiscordTargetResolver.resolve(bridge, players, mojangApi, name).thenAccept(target -> {
             if (target.isEmpty()) {
                 event.getHook().editOriginal("Could not find a player named `" + name + "`.").queue();
@@ -171,7 +186,7 @@ public class ModerationSlashCommands extends ListenerAdapter {
                 return;
             }
             for (Punishment p : active) {
-                punishmentService.revoke(p.getId(), null, reason);
+                punishmentService.revoke(p.getId(), staffUuid, reason);
             }
             event.getHook().editOriginal("Cleared " + active.size() + " punishment(s) for **" + target.get().name()
                     + "** by " + event.getUser().getAsTag() + ": " + reason).queue();
@@ -223,13 +238,32 @@ public class ModerationSlashCommands extends ListenerAdapter {
     }
 
     private void note(SlashCommandInteractionEvent event, String name, String text) {
+        UUID staffUuid = linkService.findLinkedUuid(event.getUser().getId()).orElse(null);
         DiscordTargetResolver.resolve(bridge, players, mojangApi, name).thenAccept(target -> {
             if (target.isEmpty()) {
                 event.getHook().editOriginal("Could not find a player named `" + name + "`.").queue();
                 return;
             }
-            noteService.add(target.get().uuid(), null, "[Discord: " + event.getUser().getAsTag() + "] " + text);
+            noteService.add(target.get().uuid(), staffUuid, "[Discord: " + event.getUser().getAsTag() + "] " + text);
             event.getHook().editOriginal("Note added for **" + target.get().name() + "**.").queue();
-        });
+            });
+    }
+
+    /** §6 - generates a code and tells the member to redeem it with `/link <code>` in-game. */
+    private void link(SlashCommandInteractionEvent event) {
+        if (linkService.findLinkedUuid(event.getUser().getId()).isPresent()) {
+            event.reply("Your Discord account is already linked. Use `/unlink` first to link a different account.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+        String code = linkService.generateCode(event.getUser().getId(), event.getUser().getAsTag());
+        event.reply("In-game, run `/link " + code + "` within 10 minutes to finish linking your Discord account.")
+                .setEphemeral(true).queue();
+    }
+
+    private void unlink(SlashCommandInteractionEvent event) {
+        boolean removed = linkService.unlinkDiscord(event.getUser().getId());
+        event.reply(removed ? "Your Discord account has been unlinked." : "Your Discord account isn't linked to anything.")
+                .setEphemeral(true).queue();
     }
 }
