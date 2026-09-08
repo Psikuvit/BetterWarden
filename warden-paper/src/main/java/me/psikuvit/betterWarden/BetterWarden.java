@@ -3,8 +3,6 @@ package me.psikuvit.betterWarden;
 import me.psikuvit.betterWarden.bridge.PaperBridge;
 import me.psikuvit.betterWarden.client.RemotePunishmentCommands;
 import me.psikuvit.betterWarden.core.client.RemoteCoreClient;
-import me.psikuvit.betterWarden.core.client.RemotePunishmentCache;
-import me.psikuvit.betterWarden.core.client.WriteJournal;
 import me.psikuvit.betterWarden.command.InfoCommands;
 import me.psikuvit.betterWarden.command.LinkCommands;
 import me.psikuvit.betterWarden.command.PunishmentCommands;
@@ -12,7 +10,6 @@ import me.psikuvit.betterWarden.command.ReportCommands;
 import me.psikuvit.betterWarden.command.TicketCommands;
 import me.psikuvit.betterWarden.command.WardenAdminCommands;
 import me.psikuvit.betterWarden.core.WardenSpringApp;
-import me.psikuvit.betterWarden.core.config.ConfigBootstrap;
 import me.psikuvit.betterWarden.core.config.CoreConfig;
 import me.psikuvit.betterWarden.core.config.EditionService;
 import me.psikuvit.betterWarden.core.discord.DiscordBotService;
@@ -69,29 +66,12 @@ public final class BetterWarden extends JavaPlugin {
         // Needed so Spring's autoconfiguration scanning can see the plugin jar's resources.
         Thread.currentThread().setContextClassLoader(getClassLoader());
 
-        try {
-            configFile = ConfigBootstrap.ensureConfigFile(getDataFolder(),
-                    () -> getResource("default-config.yml"));
-            ConfigBootstrap.ensureSecuritySecrets(configFile);
-            ConfigBootstrap.applyToSystemProperties(configFile, getDataFolder());
-        } catch (Exception e) {
-            getLogger().severe("Could not load config.yml: " + e);
-            getServer().getPluginManager().disablePlugin(this);
+        PlatformBootstrap.ConfigResult boot = PlatformBootstrap.initConfig(this);
+        if (boot == null) {
             return;
         }
-
-        getServer().getMessenger().registerIncomingPluginChannel(this, CoreHandshake.CHANNEL_ID,
-                new CoreHandshakeListener(this, getDataFolder()));
-
-        String mode;
-        try {
-            mode = ConfigBootstrap.readMode(configFile);
-        } catch (Exception e) {
-            getLogger().severe("Could not read warden.mode from config.yml: " + e);
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
-        if ("CLIENT".equals(mode)) {
+        configFile = boot.configFile();
+        if ("CLIENT".equals(boot.mode())) {
             bootClientMode();
             return;
         }
@@ -183,26 +163,19 @@ public final class BetterWarden extends JavaPlugin {
         CoreHandshake h = handshake.get();
         getLogger().info("CLIENT mode - connecting to Core at " + h.coreUrl() + "...");
 
-        LangService lang = new LangService();
-        CoreConfig rawConfig = new CoreConfig();
+        PlatformBootstrap.ClientCore client;
         try {
-            rawConfig.getSecurity().setIpSalt(ConfigBootstrap.readIpSalt(configFile));
+            client = PlatformBootstrap.bootClientCore(h, configFile, getDataFolder(), getSLF4JLogger(), getSLF4JLogger());
         } catch (Exception e) {
             getLogger().severe("Could not read warden.security.ip-salt from config.yml: " + e);
             return;
         }
-        IpHashingService ipHashing = new IpHashingService(rawConfig);
+        remoteClient = client.remoteClient();
 
-        RemotePunishmentCache cache = new RemotePunishmentCache();
-        WriteJournal journal = new WriteJournal(getDataFolder(), getSLF4JLogger());
-        remoteClient = new RemoteCoreClient(h.coreUrl(), h.nodeToken(), cache, journal, getSLF4JLogger());
-        remoteClient.start();
-
-        getServer().getPluginManager().registerEvents(new BanGateListener(cache, ipHashing, lang), this);
-        getServer().getPluginManager().registerEvents(new MuteGateListener(cache, lang), this);
-        getServer().getPluginManager().registerEvents(new MuteCommandBlockListener(cache, lang), this);
-        // No Spring context in CLIENT mode - MojangApiService is a plain POJO like LangService above.
-        RemotePunishmentCommands.register(this, remoteClient, cache, lang, new MojangApiService(), new PaperScheduler(this));
+        getServer().getPluginManager().registerEvents(new BanGateListener(client.cache(), client.ipHashing(), client.lang()), this);
+        getServer().getPluginManager().registerEvents(new MuteGateListener(client.cache(), client.lang()), this);
+        getServer().getPluginManager().registerEvents(new MuteCommandBlockListener(client.cache(), client.lang()), this);
+        RemotePunishmentCommands.register(this, remoteClient, client.cache(), client.lang(), client.mojangApi(), new PaperScheduler(this));
     }
 
     /** Soft-depends: each hook type is only ever loaded by the JVM once its plugin is confirmed present. */
