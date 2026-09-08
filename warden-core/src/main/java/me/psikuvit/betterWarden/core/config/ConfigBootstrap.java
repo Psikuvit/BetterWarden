@@ -1,5 +1,7 @@
 package me.psikuvit.betterWarden.core.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -17,10 +19,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.function.Supplier;
 
 /** Runs before the Spring context exists: ensures config.yml exists, resolves boot-time system properties. */
 public final class ConfigBootstrap {
+
+    private static final Logger log = LoggerFactory.getLogger(ConfigBootstrap.class);
 
     private ConfigBootstrap() {
     }
@@ -52,6 +57,12 @@ public final class ConfigBootstrap {
 
         Map<String, Object> storage = asMap(warden.get("storage"));
         String type = String.valueOf(storage.getOrDefault("type", "sqlite"));
+
+        if (isFreeEdition() && !"sqlite".equalsIgnoreCase(type)) {
+            log.warn("storage.type '{}' ignored - the free edition only supports SQLite. "
+                    + "See betterwarden.dev for MySQL/Postgres support.", type);
+            type = "sqlite";
+        }
 
         switch (type.toLowerCase()) {
             case "sqlite" -> {
@@ -242,5 +253,19 @@ public final class ConfigBootstrap {
     private static String env(String name, String fallback) {
         String value = System.getenv(name);
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    /** Same edition.properties EditionService reads later - duplicated here (not a shared bean) only because this runs before the Spring context exists. */
+    private static boolean isFreeEdition() {
+        try (InputStream in = ConfigBootstrap.class.getResourceAsStream("/edition.properties")) {
+            if (in == null) {
+                return false;
+            }
+            Properties props = new Properties();
+            props.load(in);
+            return "free".equalsIgnoreCase(props.getProperty("edition", "paid"));
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

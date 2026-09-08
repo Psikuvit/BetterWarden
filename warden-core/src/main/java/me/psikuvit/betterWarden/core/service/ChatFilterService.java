@@ -1,6 +1,7 @@
 package me.psikuvit.betterWarden.core.service;
 
 import me.psikuvit.betterWarden.core.config.CoreConfig;
+import me.psikuvit.betterWarden.core.config.EditionService;
 import me.psikuvit.betterWarden.core.model.FilterAction;
 import me.psikuvit.betterWarden.core.model.FilteredMessage;
 import me.psikuvit.betterWarden.core.model.PunishmentType;
@@ -46,6 +47,7 @@ public class ChatFilterService {
     private static final Pattern NEVER_MATCH = Pattern.compile("(?!)");
 
     private final CoreConfig config;
+    private final EditionService edition;
     private final FilteredMessageRepository filteredMessages;
     private final PunishmentService punishmentService;
 
@@ -58,8 +60,10 @@ public class ChatFilterService {
     /** Compiled once per distinct rule string, not once per message - blocked-words is checked on every chat message. */
     private final Map<String, Pattern> regexCache = new ConcurrentHashMap<>();
 
-    public ChatFilterService(CoreConfig config, FilteredMessageRepository filteredMessages, PunishmentService punishmentService) {
+    public ChatFilterService(CoreConfig config, EditionService edition, FilteredMessageRepository filteredMessages,
+                              PunishmentService punishmentService) {
         this.config = config;
+        this.edition = edition;
         this.filteredMessages = filteredMessages;
         this.punishmentService = punishmentService;
     }
@@ -75,6 +79,10 @@ public class ChatFilterService {
     /** Call once per chat message - evaluates every rule and, on a hit, both logs it and checks the auto-punish threshold. */
     @Transactional
     public FilterResult apply(UUID uuid, String playerName, String server, String rawMessage) {
+        // docs/spec/08-TIERS-AND-LICENSING.txt - chat filter is paid-only, regardless of config.yml.
+        if (edition.isFree()) {
+            return FilterResult.ALLOW;
+        }
         CoreConfig.ChatFilter cfg = config.getChatFilter();
         if (!cfg.isEnabled()) {
             return FilterResult.ALLOW;

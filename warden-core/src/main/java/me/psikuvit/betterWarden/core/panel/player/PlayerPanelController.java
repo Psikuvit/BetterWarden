@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -125,7 +126,7 @@ public class PlayerPanelController {
     @PreAuthorize("hasRole('MODERATOR')")
     public NoteEntry addNote(@PathVariable String uuid, @RequestBody AddNoteRequest req) {
         // No panel-to-Minecraft account linking yet (spec §3) - notes from the panel are attributed to CONSOLE.
-        StaffNote note = staffNotes.add(UUID.fromString(uuid), null, req.body());
+        StaffNote note = staffNotes.add(UUID.fromString(uuid), null, req.body()).orElseThrow();
         return new NoteEntry(note.getId(), note.getStaffUuid(), note.getBody(), note.getCreatedAt());
     }
 
@@ -146,6 +147,6 @@ public class PlayerPanelController {
 
     private boolean hasAdminRole(Authentication authentication) {
         return authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_OWNER"));
+                .anyMatch(a -> Objects.equals(a.getAuthority(), "ROLE_ADMIN") || a.getAuthority().equals("ROLE_OWNER"));
     }
 }
