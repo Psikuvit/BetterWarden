@@ -55,6 +55,13 @@ public class Report {
     @Column(length = 64)
     private String server;
 
+    /** Set once the Discord #reports feed (docs/spec/05-DISCORD-BOT.txt §3/§4) has posted this report's actionable embed - lets later status changes, from either surface, edit that same message in place instead of spamming a new one. Null if the feed isn't configured. */
+    @Column(name = "discord_channel_id", length = 32)
+    private String discordChannelId;
+
+    @Column(name = "discord_message_id", length = 32)
+    private String discordMessageId;
+
     public Report() {
     }
 
@@ -148,5 +155,21 @@ public class Report {
 
     public void setServer(String server) {
         this.server = server;
+    }
+
+    public String getDiscordChannelId() {
+        return discordChannelId;
+    }
+
+    public void setDiscordChannelId(String discordChannelId) {
+        this.discordChannelId = discordChannelId;
+    }
+
+    public String getDiscordMessageId() {
+        return discordMessageId;
+    }
+
+    public void setDiscordMessageId(String discordMessageId) {
+        this.discordMessageId = discordMessageId;
     }
 }
