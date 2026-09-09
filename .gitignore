@@ -126,3 +126,7 @@ buildNumber.properties
 
 # Common working directory
 run/
+
+
+# Release zip staging/output - large build artifacts, never committed
+/releases/
