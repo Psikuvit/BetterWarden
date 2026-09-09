@@ -9,10 +9,12 @@ import me.psikuvit.betterWarden.core.service.PunishmentService;
 import me.psikuvit.betterWarden.core.service.PunishmentTemplateService;
 import me.psikuvit.betterWarden.core.service.StaffNoteService;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +35,11 @@ public class PlayerLookupMenu extends WardenMenu {
         super(27, "<dark_gray>Lookup: <white>" + targetName);
 
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
-        ItemMeta headMeta = head.getItemMeta();
+        SkullMeta headMeta = (SkullMeta) head.getItemMeta();
+        // /lookup works for offline players too (looking up someone not currently online is the
+        // common case) - Bukkit.getPlayer() would NPE here since it only returns online players.
+        // getOfflinePlayer() never returns null and still carries a resolvable skin profile.
+        headMeta.setPlayerProfile(Bukkit.getOfflinePlayer(targetUuid).getPlayerProfile());
         headMeta.displayName(MM.deserialize("<white>" + targetName));
         List<String> headLore = new ArrayList<>();
         playerTracking.find(targetUuid).ifPresentOrElse(p -> {
