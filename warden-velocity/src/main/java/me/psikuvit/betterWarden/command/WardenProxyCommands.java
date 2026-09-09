@@ -11,10 +11,16 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * {@code /warden ...} on the proxy side: "panel" and "nodes". Takes panelUrl/nodeCount as
- * suppliers rather than a CoreConfig/NodeWebSocketHandler directly, so the same command works
- * whether this proxy is HOST (embeds its own core) or CLIENT (talks to an external one over
- * RemoteCoreClient, which has no local node hub of its own to ask directly).
+ * {@code /wardennet ...} on the proxy side: "panel" and "nodes". Deliberately NOT named "warden" -
+ * a Velocity/BungeeCord proxy command registration always wins over a same-named backend command
+ * for any player connecting through it (the proxy claims the whole literal and either handles it
+ * itself or doesn't forward it at all), so naming this "warden" would silently swallow every
+ * backend server's own richer /warden (status/reload/debug/template/escalation/unlink -
+ * WardenAdminCommands) the moment a proxy sits in front of it - a real bug this project hit
+ * (see commit history/PLAN.md), not a hypothetical. Takes panelUrl/nodeCount as suppliers rather
+ * than a CoreConfig/NodeWebSocketHandler directly, so the same command works whether this proxy is
+ * HOST (embeds its own core) or CLIENT (talks to an external one over RemoteCoreClient, which has
+ * no local node hub of its own to ask directly).
  */
 public final class WardenProxyCommands {
 
@@ -24,7 +30,7 @@ public final class WardenProxyCommands {
                                  Supplier<Optional<Integer>> nodeCount, Supplier<String> setupCode) {
         CommandManager manager = server.getCommandManager();
 
-        manager.register(manager.metaBuilder("warden").plugin(plugin).build(), new SimpleCommand() {
+        manager.register(manager.metaBuilder("wardennet").plugin(plugin).build(), new SimpleCommand() {
             @Override
             public boolean hasPermission(Invocation invocation) {
                 return invocation.source().hasPermission(PERMISSION);
@@ -35,7 +41,7 @@ public final class WardenProxyCommands {
                 CommandSource source = invocation.source();
                 String[] args = invocation.arguments();
                 if (args.length == 0) {
-                    source.sendRichMessage("<gray>Usage: /warden <panel|nodes|setup>");
+                    source.sendRichMessage("<gray>Usage: /wardennet <panel|nodes|setup>");
                     return;
                 }
                 switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -46,7 +52,7 @@ public final class WardenProxyCommands {
                             count -> source.sendRichMessage(lang.get("admin.nodes-connected", count)),
                             () -> source.sendRichMessage("<red>Could not reach Core for the node count."));
                     case "setup" -> source.sendRichMessage(setupCode.get());
-                    default -> source.sendRichMessage("<gray>Usage: /warden <panel|nodes|setup>");
+                    default -> source.sendRichMessage("<gray>Usage: /wardennet <panel|nodes|setup>");
                 }
             }
         });

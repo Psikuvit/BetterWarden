@@ -284,14 +284,20 @@ Velocity and BungeeCord/Waterfall — these jars only ship with a Network licens
 punishments issue directly through the proxy, so they apply regardless of which backend server
 the target is connected to.
 
+Note this is `/wardennet`, not `/warden` — a proxy's own command registration always wins over a
+same-named command on a backend server for anyone connecting through it, so naming this `/warden`
+too would silently swallow the backend's own richer `/warden` (Admin section above) for every
+player on the network. Use `/wardennet` on the proxy and `/warden` directly on a backend server
+(e.g. from its console, or as an operator standing on it).
+
 | Command | Permission | Description |
 |---|---|---|
 | `/gban <player> [reason]` | `warden.ban` | Network-wide ban |
 | `/gmute <player> [reason]` | `warden.mute` | Network-wide mute |
 | `/gkick <player> [reason]` | `warden.kick` | Network-wide kick |
-| `/warden panel` | `warden.admin` | Show the panel URL |
-| `/warden nodes` | `warden.admin` | Show how many backend servers are currently connected |
-| `/warden setup` | `warden.admin` | Reissue the panel setup code |
+| `/wardennet panel` | `warden.admin` | Show the panel URL |
+| `/wardennet nodes` | `warden.admin` | Show how many backend servers are currently connected |
+| `/wardennet setup` | `warden.admin` | Reissue the panel setup code |
 
 ---
 
