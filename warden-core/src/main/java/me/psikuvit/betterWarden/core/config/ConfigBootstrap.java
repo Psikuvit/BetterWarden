@@ -54,6 +54,7 @@ public final class ConfigBootstrap {
         Map<String, Object> warden = asMap(root.get("warden"));
 
         flattenToSystemProperties("warden", warden);
+        System.setProperty("warden.dataFolder", dataFolder.getAbsolutePath());
 
         Map<String, Object> storage = asMap(warden.get("storage"));
         String type = String.valueOf(storage.getOrDefault("type", "sqlite"));

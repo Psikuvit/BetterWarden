@@ -42,6 +42,7 @@ migration needed: drop in the paid jar, restart, and everything in this README l
 - [Standard/Network — first-time setup (web panel)](#standardnetwork--first-time-setup-web-panel)
 - [Networked setup (proxy + multiple servers) — Network only](#networked-setup-proxy--multiple-servers--network-only)
 - [Configuration](#configuration)
+  - [Language](#language)
 - [Commands & permissions](#commands--permissions)
   - [Punishments](#punishments)
   - [Player info](#player-info)
@@ -139,6 +140,7 @@ on Velocity).
 ```yaml
 warden:
   mode: host              # host | client - see "Networked setup" above (Network only)
+  language: en            # en | fr | de, or your own - see "Language" below
   storage:
     type: sqlite           # sqlite | mysql (mysql is Standard/Network - free is forced to sqlite)
     mysql:
@@ -168,6 +170,19 @@ nothing to set up by hand.
 
 Change `warden.mode`, `storage`, or `panel.port` and you'll need to restart for it to take
 effect — everything else can be changed and picked up with `/warden reload`.
+
+### Language
+
+All player-facing messages go through `warden.language` in `config.yml`. English (`en`),
+French (`fr`) and German (`de`) ship in the jar — set `language: fr`, restart, done.
+
+Want a language BetterWarden doesn't bundle, or to fix/customize a translation? Drop a
+`lang/<code>.yml` file (same key structure as
+[`en.yml`](warden-core/src/main/resources/lang/en.yml)) in the plugin/proxy's own data folder —
+next to `config.yml` — then set `language` to that code. Any key your file doesn't include falls
+back to English automatically, so a partial translation never shows a raw message key to a
+player. This applies whether you're adding a whole new language or just overriding a few lines
+of a bundled one (put your own `lang/fr.yml` there to tweak French without waiting on us).
 
 ---
 

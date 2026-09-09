@@ -5,6 +5,13 @@ warden:
 
   server-name: "My Network"
 
+  # Message language - "en" (English), "fr" (Français) and "de" (Deutsch) ship in the jar.
+  # Anything else falls back to English for messages it does not have. To add your own
+  # language (or override a shipped one), drop a lang/<code>.yml file - same key structure as
+  # https://github.com/Psikuvit/BetterWarden/blob/master/warden-core/src/main/resources/lang/en.yml -
+  # in this plugin/proxy's own data folder, then set language to that code here.
+  language: en
+
   # host | client. host embeds its own core (default - Stage 3). client connects to an
   # external core instead (e.g. a warden-standalone Docker deployment, Stage 4) and never
   # boots a local database - set warden.core.url below when using client.

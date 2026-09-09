@@ -5,6 +5,13 @@ warden:
 
   server-name: "My Server"
 
+  # Message language - "en" (English), "fr" (Français) and "de" (Deutsch) ship in the jar.
+  # Anything else falls back to English for messages it does not have. To add your own
+  # language (or override a shipped one), drop a lang/<code>.yml file - same key structure as
+  # https://github.com/Psikuvit/BetterWarden/blob/master/warden-core/src/main/resources/lang/en.yml -
+  # in this plugin/proxy's own data folder, then set language to that code here.
+  language: en
+
   # host | client. client skips booting this server's own core and instead talks to a
   # proxy's core over REST/WebSocket - only meaningful behind a Velocity/BungeeCord proxy
   # in host mode, which relays it a handshake (config.yml alone is not enough; it needs
