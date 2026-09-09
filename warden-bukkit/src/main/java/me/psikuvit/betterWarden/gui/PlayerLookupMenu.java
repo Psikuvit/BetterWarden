@@ -36,9 +36,6 @@ public class PlayerLookupMenu extends WardenMenu {
 
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta headMeta = (SkullMeta) head.getItemMeta();
-        // /lookup works for offline players too (looking up someone not currently online is the
-        // common case) - Bukkit.getPlayer() would NPE here since it only returns online players.
-        // getOfflinePlayer() never returns null and still carries a resolvable skin profile.
         headMeta.setPlayerProfile(Bukkit.getOfflinePlayer(targetUuid).getPlayerProfile());
         headMeta.displayName(MM.deserialize("<white>" + targetName));
         List<String> headLore = new ArrayList<>();
