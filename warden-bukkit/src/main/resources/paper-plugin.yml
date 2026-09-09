@@ -5,3 +5,26 @@ main: me.psikuvit.betterWarden.BetterWarden
 api-version: '26.2'
 load: POSTWORLD
 folia-supported: true
+
+# Every warden.* node checked by the dynamic Brigadier commands (WardenAdminCommands,
+# PunishmentCommands) is otherwise never registered anywhere - Bukkit's own fallback for an
+# UNREGISTERED permission string is still "OP gets it" (Permission.DEFAULT_PERMISSION == OP, see
+# PermissibleBase.hasPermission), so this is defense-in-depth/documentation rather than a required
+# fix for op access - but declaring them properly is what makes them show up correctly in
+# permission-plugin tooling (LuckPerms' /lp editor, etc.) for servers that don't just rely on OP.
+permissions:
+  warden.admin:
+    description: BetterWarden admin/ops subcommands (/warden ...)
+    default: op
+  warden.ban:
+    description: Ban/tempban/ipban/unban players
+    default: op
+  warden.kick:
+    description: Kick players
+    default: op
+  warden.mute:
+    description: Mute/tempmute/unmute players
+    default: op
+  warden.warn:
+    description: Warn players
+    default: op
